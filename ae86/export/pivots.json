@@ -1,0 +1,334 @@
+{
+  "units": "metres (1 Blender unit = 1 m)",
+  "blender_axes": "nose -Y, up +Z, car left +X",
+  "offsets_frame": "[left, up, back] in metres, relative to the bounding-box centre",
+  "parts": {
+    "Body": {
+      "tris": 7114,
+      "origin_blender_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox_center_blender_m": [
+        0.0,
+        0.0885,
+        0.7696
+      ],
+      "size_m": [
+        1.8448,
+        1.1292,
+        4.017
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        -0.7696,
+        -0.0885
+      ]
+    },
+    "Glass": {
+      "tris": 740,
+      "origin_blender_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox_center_blender_m": [
+        0.0,
+        0.52456,
+        1.08797
+      ],
+      "size_m": [
+        1.47669,
+        0.44393,
+        2.53215
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        -1.08797,
+        -0.52456
+      ]
+    },
+    "Bumper_Front": {
+      "tris": 1390,
+      "origin_blender_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox_center_blender_m": [
+        0.0,
+        -1.74932,
+        0.40988
+      ],
+      "size_m": [
+        1.593,
+        0.35976,
+        0.6217
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        -0.40988,
+        1.74932
+      ]
+    },
+    "Bumper_Rear": {
+      "tris": 986,
+      "origin_blender_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox_center_blender_m": [
+        0.0,
+        1.78668,
+        0.35873
+      ],
+      "size_m": [
+        1.5965,
+        0.36453,
+        0.71897
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        -0.35873,
+        -1.78668
+      ]
+    },
+    "Skirt_L": {
+      "tris": 168,
+      "origin_blender_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox_center_blender_m": [
+        0.6866,
+        0.008,
+        0.215
+      ],
+      "size_m": [
+        0.1261,
+        0.086,
+        1.708
+      ],
+      "origin_minus_bbox_center_m": [
+        -0.6866,
+        -0.215,
+        -0.008
+      ]
+    },
+    "Skirt_R": {
+      "tris": 168,
+      "origin_blender_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox_center_blender_m": [
+        -0.6866,
+        0.008,
+        0.215
+      ],
+      "size_m": [
+        0.1261,
+        0.086,
+        1.708
+      ],
+      "origin_minus_bbox_center_m": [
+        0.6866,
+        -0.215,
+        -0.008
+      ]
+    },
+    "Popup_L": {
+      "tris": 188,
+      "origin_blender_m": [
+        0.50311,
+        -1.751,
+        0.72457
+      ],
+      "bbox_center_blender_m": [
+        0.50484,
+        -1.82925,
+        0.61595
+      ],
+      "size_m": [
+        0.25968,
+        0.26801,
+        0.1785
+      ],
+      "origin_minus_bbox_center_m": [
+        -0.00173,
+        0.10862,
+        0.07825
+      ],
+      "open_angle_deg": 52.0,
+      "hinge_axis": "part X axis; positive rotation opens (front rises)"
+    },
+    "Popup_R": {
+      "tris": 188,
+      "origin_blender_m": [
+        -0.50311,
+        -1.751,
+        0.72457
+      ],
+      "bbox_center_blender_m": [
+        -0.50484,
+        -1.82925,
+        0.61595
+      ],
+      "size_m": [
+        0.25968,
+        0.26801,
+        0.1785
+      ],
+      "origin_minus_bbox_center_m": [
+        0.00173,
+        0.10862,
+        0.07825
+      ],
+      "open_angle_deg": 52.0,
+      "hinge_axis": "part X axis; positive rotation opens (front rises)"
+    },
+    "Lights_Front": {
+      "tris": 224,
+      "origin_blender_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox_center_blender_m": [
+        0.0,
+        -1.89359,
+        0.5625
+      ],
+      "size_m": [
+        1.48142,
+        0.173,
+        0.31317
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        -0.5625,
+        1.89359
+      ]
+    },
+    "Lights_Rear": {
+      "tris": 208,
+      "origin_blender_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bbox_center_blender_m": [
+        0.0,
+        2.04704,
+        0.685
+      ],
+      "size_m": [
+        1.408,
+        0.134,
+        0.05649
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        -0.685,
+        -2.04704
+      ]
+    },
+    "Wheel_FL": {
+      "tris": 684,
+      "origin_blender_m": [
+        0.6695,
+        -1.2,
+        0.296
+      ],
+      "bbox_center_blender_m": [
+        0.6695,
+        -1.2,
+        0.296
+      ],
+      "size_m": [
+        0.18988,
+        0.592,
+        0.592
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Wheel_FR": {
+      "tris": 684,
+      "origin_blender_m": [
+        -0.6695,
+        -1.2,
+        0.296
+      ],
+      "bbox_center_blender_m": [
+        -0.6695,
+        -1.2,
+        0.296
+      ],
+      "size_m": [
+        0.18988,
+        0.592,
+        0.592
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Wheel_RL": {
+      "tris": 684,
+      "origin_blender_m": [
+        0.6645,
+        1.2,
+        0.296
+      ],
+      "bbox_center_blender_m": [
+        0.6645,
+        1.2,
+        0.296
+      ],
+      "size_m": [
+        0.18988,
+        0.592,
+        0.592
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Wheel_RR": {
+      "tris": 684,
+      "origin_blender_m": [
+        -0.6645,
+        1.2,
+        0.296
+      ],
+      "bbox_center_blender_m": [
+        -0.6645,
+        1.2,
+        0.296
+      ],
+      "size_m": [
+        0.18988,
+        0.592,
+        0.592
+      ],
+      "origin_minus_bbox_center_m": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "total_tris": 14110
+}
