@@ -22,18 +22,18 @@ Pranchas completas: [cor](renders/sheet_color.jpg) · [clay](renders/sheet_clay.
 
 ## Peças e orçamento
 
-**Total: 14.110 triângulos** (limite: 15.000). Sem interior: os vidros são escuros e há apenas
+**Total: 14.784 triângulos** (limite: 15.000). Sem interior: os vidros são escuros e há apenas
 caixas de roda, cavidades dos pop-ups e um assoalho plano para o carro não ficar "oco" visto de baixo.
 
 | objeto | tris | observação |
 |---|---:|---|
-| `Body` | 7.114 | carroceria, caixas de roda, cavidades dos pop-ups, retrovisores, maçanetas, limpadores, abas de vedação |
+| `Body` | 6.824 | carroceria, caixas de roda, cavidades dos pop-ups, retrovisores, maçanetas, limpadores, abas de vedação |
 | `Glass` | 740 | para-brisa, janelas laterais, vigia (recuados 6–7 mm, com moldura de borracha) |
-| `Bumper_Front` | 1.390 | faixa da grade/lanternas rebaixada, prateleira sob o nariz, retorno no arco |
-| `Bumper_Rear` | 986 | degrau inferior, prateleira sob o painel traseiro, ponteira do escapamento |
-| `Skirt_L`, `Skirt_R` | 168 cada | saias laterais |
+| `Bumper_Front` | 2.056 | perfil do blueprint: faixa da grade/lanternas saliente e rebaixada, parte inferior recuada, saia (spoiler inferior), friso lateral em relevo, cantos arredondados, fim arredondado no arco |
+| `Bumper_Rear` | 1.188 | degrau inferior, prateleira sob o painel traseiro, fim arredondado acompanhando o arco, ponteira do escapamento |
+| `Skirt_L`, `Skirt_R` | 222 cada | saias laterais (fechadas, pontas arredondadas) |
 | `Popup_L`, `Popup_R` | 188 cada | faróis escamoteáveis funcionais (tampa, visor, lente com refletor redondo) |
-| `Lights_Front` | 224 | lanternas de canto, piscas e luzes de posição do para-choque, grade |
+| `Lights_Front` | 212 | lanternas de canto, piscas e luzes de posição do para-choque, grade |
 | `Lights_Rear` | 208 | lanternas traseiras com moldura rebaixada |
 | `Wheel_FL/FR/RL/RR` | 684 cada | pneu + roda de 8 raios, lado interno fechado |
 

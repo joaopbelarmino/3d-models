@@ -22,7 +22,7 @@ local body = model:WaitForChild("Body")
 local popups = { model:WaitForChild("Popup_L"), model:WaitForChild("Popup_R") }
 
 local OPEN_ANGLE = math.rad(52.0)
-local BODY_LENGTH_M = 4.0170  -- length of the Body mesh in metres
+local BODY_LENGTH_M = 4.0270  -- length of the Body mesh in metres
 local HINGE_UP_M = 0.1086      -- hinge height above the pop-up bounding-box centre
 local HINGE_BACK_M = 0.0783  -- hinge distance behind the pop-up bounding-box centre
 local TWEEN = TweenInfo.new(0.55, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)

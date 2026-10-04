@@ -462,8 +462,8 @@ def build():
         [2788, 895], [3100, 902], [3400, 909], [3630, 916], [3680, 925], [3694, 940],
         [3600, 1010], [3450, 1120], [3300, 1200], [3150, 1252], [3000, 1268], [2850, 1272],
         [2720, 1270], [2706, 1255], [2745, 1070]])
-    door_glass3 = _densify(lift_gh, door_glass2, 60.0)
-    q_glass3 = _densify(lift_gh, q_glass2, 60.0)
+    door_glass3 = _densify(lift_gh, door_glass2, 85.0)
+    q_glass3 = _densify(lift_gh, q_glass2, 85.0)
     info['door_glass'] = door_glass3
     info['door_glass_2d'] = door_glass2
     info['q_glass_2d'] = q_glass2
@@ -532,7 +532,7 @@ def build():
     band_line[0] = corner_hi[-1]
     cl_hi = lift_rear(np.column_stack([np.zeros(4), np.linspace(ZB, 945.0, 4)]))[1:-1]
     upper = np.vstack([tail_top, corner_hi[1:], band_line[1:], cl_hi])
-    stn = [(w, z) for w in np.arange(40, 720, 70) for z in np.arange(830, 940, 45)]
+    stn = [(w, z) for w in np.arange(50, 720, 95) for z in np.arange(840, 940, 55)]
     fill_region(mb, [upper], rear_proj, lift_rear, M_PAINT, tag='tail', steiner=stn)
     mb.mark_chain([mb.v(p) for p in band_line])
 
@@ -551,7 +551,7 @@ def build():
     lamp2 = np.array([[292, 618], [700, 618], [704, 752], [296, 752]])
     lamp3 = _densify(lift_rear, lamp2, 50.0, closed=True)
     info['taillamp'] = lamp3
-    stn = [(w, z) for w in np.arange(30, 720, 55) for z in np.arange(560, 810, 45)]
+    stn = [(w, z) for w in np.arange(40, 720, 80) for z in np.arange(575, 810, 60)]
     fill_region(mb, [loop, lamp3], rear_proj, lift_rear, M_BLACK, tag='tail', steiner=stn)
     # plate recess (inset panel + walls)
     rec_in = rec3.copy()

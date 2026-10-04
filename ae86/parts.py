@@ -183,46 +183,71 @@ def wheels():
 
 
 # ------------------------------------------------------------------ bumpers
-def front_bumper(info):
-    """Front bumper: plan sweep from the centre around the corner to the arch,
-    with a recessed lamp/grille band and the shelf under the nose."""
-    mb = MeshBuilder()
-    AF = P.ARCH_F
-    # plan path of the bumper top-front edge (centre -> side)
-    ctrl = np.array([[6, 0], [6, 220], [8, 400], [14, 500], [26, 572], [46, 630],
-                     [80, 676], [130, 710], [200, 731], [300, 742], [400, 755], [531, 768]])
-    dense = curve(ctrl, 400, smooth=True)
-    # adaptive stations: dense around the corner, sparse on the flat faces
+def _adaptive_path(ctrl, n, k=60.0):
+    """Resample a smooth plan path with stations clustered where it bends."""
+    dense = curve(ctrl, 500, smooth=True)
     seg = np.linalg.norm(np.diff(dense, axis=0), axis=1)
-    L = np.concatenate([[0], np.cumsum(seg)])
-    curv = np.zeros(len(dense))
     T = np.gradient(dense, axis=0)
     T /= np.linalg.norm(T, axis=1, keepdims=True)
+    curv = np.zeros(len(dense))
     curv[1:-1] = np.linalg.norm(T[2:] - T[:-2], axis=1)
-    dens = 1.0 + 60.0 * curv
-    cum = np.concatenate([[0], np.cumsum(dens[1:] * seg)])
-    tgt = np.linspace(0, cum[-1], 24)
-    path = np.column_stack([np.interp(tgt, cum, dense[:, 0]), np.interp(tgt, cum, dense[:, 1])])
-    path[:, 1] = np.maximum(path[:, 1], 0)
-    path[0, 1] = 0.0
-    # snap the side part onto the body side surface at the top edge
-    for i, (s, w) in enumerate(path):
-        if s > 300:
-            path[i, 1] = float(P.W_side(s, 585.0))
+    cum = np.concatenate([[0], np.cumsum((1.0 + k * curv[1:]) * seg)])
+    tgt = np.linspace(0, cum[-1], n)
+    return np.column_stack([np.interp(tgt, cum, dense[:, 0]), np.interp(tgt, cum, dense[:, 1])])
+
+
+# front bumper section: (z, front offset) -- offsets are along the outward
+# plan normal, relative to the top-front edge line.  Follows the zenki
+# blueprint: proud lamp/grille band, lower face stepping back ~85 mm, and the
+# chin spoiler ("saia") jutting forward again at the bottom.
+FB_PROFILE = [
+    (586.0, None),     # 0 shelf inner (depth computed per station)
+    (585.0, -9.0),     # 1 shelf -> top edge
+    (581.0, -2.5),     # 2 rounded top edge
+    (573.0, 0.0),      # 3 band face top
+    (571.0, -11.0),    # 4 recess top      (band recess, front only)
+    (473.0, -11.0),    # 5 recess bottom
+    (471.0, 0.0),      # 6 band face bottom
+    (462.0, -3.0),     # 7 rounded under-band
+    (452.0, -12.0),    # 8 lower face top
+    (404.0, -44.0),    # 9 lower face (steps back)
+    (372.0, -70.0),    # 10
+    (352.0, -81.0),    # 11 rounded into the vertical part
+    (316.0, -85.0),    # 12 vertical part
+    (304.0, -89.0),    # 13 lip root (small groove)
+    (296.0, -68.0),    # 14 lip top
+    (284.0, -59.0),    # 15 lip nose (rounded)
+    (246.0, -55.0),    # 16 lip front face
+    (233.0, -62.0),    # 17 lip bottom edge (rounded)
+    (228.0, -80.0),    # 18 lip underside
+    (228.0, -165.0),   # 19 underside inner
+]
+FB_RECESS = (4, 5)
+
+
+def front_bumper(info):
+    """Front bumper: plan sweep from the centre around the corner to the
+    wheel arch.  Rounded plan corners, blueprint section with the chin
+    spoiler, raised side molding, rounded closure at the arch."""
+    mb = MeshBuilder()
+    AF = P.ARCH_F
+    ctrl = np.array([[3, 0], [3, 200], [6, 330], [13, 425], [26, 500], [46, 562], [74, 616],
+                     [112, 662], [160, 698], [222, 722], [300, 738], [390, 752], [470, 762],
+                     [531, 768]])
+    path = _adaptive_path(ctrl, 21)
+    path[0] = [3.0, 0.0]
+    for i, (s, w) in enumerate(path):          # blend onto the body side surface
+        k = float(smoothstep(250.0, 340.0, s))
+        path[i, 1] = (1 - k) * w + k * float(P.W_side(s, 585.0))
     N = plan_normals(path)
     N[0] = [-1, 0]
     s_arr = path[:, 0]
-    # side blend: 0 at the front, 1 once the bumper runs along the side
-    b = smoothstep(150.0, 330.0, s_arr)
-    # shelf inner line (under the nose panel / corner lamp)
+    b = smoothstep(130.0, 330.0, s_arr)        # 0 front profile -> 1 side profile
     shelf_plan = curve(np.array([[168, 0], [168, 600], [160, 655], [150, 690], [175, 716],
                                  [230, 728], [330, 744]]), 200)
-    Z = [585, 585, 583, 578, 571, 571, 476, 476, 468, 352, 342, 285, 255, 238, 230]
-    band_end = 0.9   # band recess active while b < band_end
     profiles = []
     for i in range(len(path)):
         s, w = path[i]
-        # shelf depth: distance from path to the shelf line along -N
         dmin = 0.0
         if b[i] < 0.999:
             d = shelf_plan - path[i]
@@ -230,64 +255,100 @@ def front_bumper(info):
             perp = np.abs(d @ np.array([-N[i, 1], N[i, 0]]))
             k = np.argmin(perp + (proj < 0) * 1e6)
             dmin = max(proj[k], 0.0)
-        side_o = lambda z: float(P.W_side(max(s, 300.0), z) - P.W_side(max(s, 300.0), 585.0))
-        front_o = {585: None, 583: -5.0, 578: 0.0, 571: 2.0, 476: 2.0, 468: 3.0, 352: 3.0,
-                   342: -5.0, 285: -9.0, 255: -16.0, 238: -27.0, 230: -110.0}
-        rec = -11.0 * (1 - smoothstep(95.0, 135.0, s))
+        ss = max(s, 300.0)
+        w585 = float(P.W_side(ss, 585.0))
+        side_o = lambda z: float(P.W_side(ss, z)) - w585
+        rec = float(1 - smoothstep(95.0, 140.0, s))        # band recess fades at the corner
+        lip = float(1 - smoothstep(150.0, 300.0, s))        # chin spoiler fades along the side
         prof = []
-        for j, z in enumerate(Z):
+        for j, (z, of) in enumerate(FB_PROFILE):
             if j == 0:
                 o_f = -dmin
-            elif j == 1:
-                o_f = -dmin * 0.45
-            elif j in (5, 6):
-                o_f = 2.0 + rec
+            elif j in FB_RECESS:
+                o_f = -11.0 * rec
             else:
-                o_f = front_o[z]
-            o_s = side_o(z) if z < 585 else 0.0
-            if j in (0, 1, 2):
+                o_f = of
+            if j == 0:
+                o_s = -20.0                                # small shelf under the body edge
+            elif j == 1:
+                o_s = -8.0
+            elif j == 2:
                 o_s = 0.0
-            if j == 14:
-                o_s = side_o(238) - 60.0
+            elif j == len(FB_PROFILE) - 1:
+                o_s = side_o(235.0) - 70.0
+            else:
+                o_s = side_o(z)
+                if j in (13, 14, 15, 16, 17):              # small lip on the side
+                    o_s += (3.0, 6.0, 7.0, 7.0, 5.0)[j - 13] * lip
             o = (1 - b[i]) * o_f + b[i] * o_s
+            if j in (0, 1):                                # shelf dips below the body flange
+                z = z - b[i] * (7.0 if j == 0 else 2.0)
             prof.append((o, z))
         profiles.append(prof)
     G = sweep(path, profiles, N)
     mb.grid(G, 0, flip=True)
-    mb.mark_chain([mb.v(p) for p in G[:, 3]])
-    mb.mark_chain([mb.v(p) for p in G[:, 4]])
-    mb.mark_chain([mb.v(p) for p in G[:, 7]])
-    mb.mark_chain([mb.v(p) for p in G[:, 8]])
-    mb.mark_chain([mb.v(p) for p in G[:, 9]])
-    mb.mark_chain([mb.v(p) for p in G[:, 10]])
-    info['fbumper_band'] = (G[:, 5], G[:, 6], path, N, b)
-    # side panel between the last sweep station (s=531) and the wheel arch:
-    # a triangular Coons patch in side view, lifted onto the body side surface
+    for j in (3, 4, 5, 6, 8, 13, 14, 17):
+        mb.mark_chain([mb.v(q) for q in G[:, j]])
+    info['fbumper_band'] = (G[:, FB_RECESS[0]], G[:, FB_RECESS[1]], path, N, b)
+
+    # side panel between the last station (s=531) and the wheel arch, with a
+    # rounded top-rear corner instead of a sharp tip
     end = G[-1]
     col = []
     for q in sorted([q for q in end if q[2] >= AF['z']], key=lambda q: q[2]):
         if not col or np.linalg.norm(q - col[-1]) > 0.5:
             col.append(q)
     col = np.array(col)                                     # bottom -> top
-    th_top = np.pi - theta_at(AF, float(col[-1][2]))
-    m, n = len(col), 7
-    s_top = float(P.arch_s_at(AF, float(col[-1][2]), 'front'))
-    arch2 = arch_pts(AF, np.pi, th_top, n)
+    ztop = float(col[-1][2])
+    z_c = 548.0
+    s_c = float(P.arch_s_at(AF, z_c, 'front'))
+    th_c = np.pi - theta_at(AF, z_c)
+    m, n = len(col), 8
+    arch2 = arch_pts(AF, np.pi, th_c, n)
     arch2[0] = col[0][[0, 2]]
-    top2 = np.column_stack([np.linspace(col[-1][0], s_top, n), np.full(n, col[-1][2])])
-    left2 = col[:, [0, 2]]
-    right2 = np.repeat(arch2[-1:], m, axis=0)
-    Gs = patch2d(arch2, top2, left2, right2, lift_side, targets={'l': col})
+    s_t = s_c - 22.0
+    top2 = np.column_stack([np.linspace(col[-1][0], s_t, n), np.full(n, ztop)])
+    corner = curve(np.array([[s_c, z_c], [s_c - 2.0, z_c + 20.0], [s_c - 9.0, ztop - 7.0],
+                             [s_t, ztop]]), m)
+    Gs = patch2d(arch2, top2, col[:, [0, 2]], corner, lift_side, targets={'l': col})
     mb.grid(Gs, 0, flip=True)
-    # return flange along the arch-facing edge (arch + vertical leg)
-    leg = np.array([q for q in end if q[2] < AF['z']][::-1])            # top -> bottom
-    leg = leg[np.argsort(-leg[:, 2])]
-    edge = np.vstack([Gs[::-1, 0], leg])
+    # return flange along the arch-facing edge: corner -> arch -> leg
+    leg = np.array(sorted([q for q in end if q[2] < AF['z'] - 0.5], key=lambda q: -q[2]))
+    edge = np.vstack([Gs[-1, ::-1], Gs[::-1, 0][1:], leg])
     inner = edge.copy()
     inner[:, 1] -= 38.0
     mb.grid(np.stack([edge, inner], axis=1), 0)
+    mb.mark_chain([mb.v(q) for q in edge])
+
+    # raised side molding (white strip along the bumper side, as on the
+    # blueprint / photos).  It is sampled from the bumper sections themselves
+    # so it hugs the surface around the corner; chamfered, tapered ends.
+    z0, z1 = 456.0, 518.0
+    mz = [(z0 - 4.0, -1.0), (z0 + 1.0, 4.0), ((z0 + z1) / 2, 5.0), (z1 - 1.0, 4.0), (z1 + 4.0, -1.0)]
+    stations = [i for i in range(len(path)) if 140.0 <= path[i, 0]]
+    rows = []
+    for k, i in enumerate(stations):
+        # face levels only (band top .. lip), sorted by height for interpolation
+        face = sorted((z, o) for j, (o, z) in enumerate(profiles[i])
+                      if 3 <= j < len(profiles[i]) - 2 and j not in FB_RECESS)
+        zs = np.array([z for (z, _) in face])
+        os_ = np.array([o for (_, o) in face])
+        t = min(k, len(stations) - 1 - k)
+        hz = (0.45, 0.85, 1.0)[min(t, 2)]            # ends narrow in height -> rounded tips
+        zm = (z0 + z1) / 2
+        row = []
+        for z, dh in mz:
+            zz = zm + (z - zm) * hz
+            o = float(np.interp(zz, zs, os_)) + dh
+            row.append([path[i, 0] + N[i, 0] * o, path[i, 1] + N[i, 1] * o, zz])
+        rows.append(row)
+    Mg = np.array(rows)
+    mb.grid(Mg, 1, flip=True)
+    mb.poly([mb.v(q) for q in Mg[0]], 1)
+    mb.poly([mb.v(q) for q in Mg[-1]][::-1], 1)
+
     full = mirror_builder(mb, axis=1)
-    o = bl.make_object('Bumper_Front', full, ['plastic_black'])
+    o = bl.make_object('Bumper_Front', full, ['plastic_black', 'paint_white'])
     bl.orient_components(o, lambda c: np.array([0.0, -1.0, 0.45]))
     return o
 
@@ -295,11 +356,10 @@ def front_bumper(info):
 def rear_bumper(info):
     mb = MeshBuilder()
     AR = P.ARCH_R
-    zb = 545.0
-    s_arch = float(P.arch_s_at(AR, zb, 'rear'))
+    s_leg = AR['s'] + AR['r'] + 2.0
     ctrl = np.array([[4205, 0], [4205, 250], [4203, 450], [4198, 560], [4186, 640],
                      [4162, 700], [4120, 735], [4050, 752], [3950, 762], [3800, 772],
-                     [3650, 778], [s_arch, 782]])
+                     [3680, 778], [s_leg, 782]])
     path = curve(ctrl, 22)
     for i, (s, w) in enumerate(path):
         if s < 4110:
@@ -327,20 +387,43 @@ def rear_bumper(info):
                 o_r = -shelf * 0.5
             else:
                 o_r = rear_o[j]
-            o_s = 0.0 if j < 3 else side_o(z)
+            o_s = (-20.0, -8.0, 0.0)[j] if j < 3 else side_o(z)
             if j == len(Z) - 1:
                 o_s = side_o(240) - 60.0
             o = (1 - b[i]) * o_r + b[i] * o_s
-            prof.append((o, z))
+            zz = z - b[i] * (6.0 if j == 0 else 2.0 if j == 1 else 0.0)
+            prof.append((o, zz))
         profiles.append(prof)
     G = sweep(path, profiles, N)
     mb.grid(G, 0)
     for j in (3, 6, 7):
         mb.mark_chain([mb.v(p) for p in G[:, j]])
+    # closure between the last station (arch leg) and the wheel arch, with a
+    # rounded top-front corner
     end = G[-1]
-    inner = end.copy()
-    inner[:, 1] -= 40
-    mb.grid(np.stack([end, inner], axis=1), 0, flip=True)
+    col = []
+    for q in sorted([q for q in end if q[2] >= AR['z']], key=lambda q: q[2]):
+        if not col or np.linalg.norm(q - col[-1]) > 0.5:
+            col.append(q)
+    col = np.array(col)
+    ztop = float(col[-1][2])
+    z_c = 512.0
+    s_c = float(P.arch_s_at(AR, z_c, 'rear'))
+    m, n = len(col), 6
+    arch2 = arch_pts(AR, theta_at(AR, float(col[0][2])), theta_at(AR, z_c), n)
+    arch2[0] = col[0][[0, 2]]
+    s_t = s_c + 20.0
+    top2 = np.column_stack([np.linspace(col[-1][0], s_t, n), np.full(n, ztop)])
+    corner = curve(np.array([[s_c, z_c], [s_c + 2.0, z_c + 16.0], [s_c + 9.0, ztop - 6.0],
+                             [s_t, ztop]]), m)
+    Gs = patch2d(arch2, top2, col[:, [0, 2]], corner, lift_side, targets={'l': col})
+    mb.grid(Gs, 0)
+    leg = np.array(sorted([q for q in end if q[2] < col[0][2] - 0.5], key=lambda q: -q[2]))
+    edge = np.vstack([Gs[-1, ::-1], Gs[::-1, 0][1:], leg])
+    inner = edge.copy()
+    inner[:, 1] -= 40.0
+    mb.grid(np.stack([edge, inner], axis=1), 0, flip=True)
+    mb.mark_chain([mb.v(q) for q in edge])
     full = mirror_builder(mb, axis=1)
     from geom import merge
     merge(full, exhaust_mb())
@@ -354,15 +437,22 @@ def side_skirts(info):
     mb = MeshBuilder()
     s0 = P.ARCH_F['s'] + P.ARCH_F['r'] + 2
     s1 = P.ARCH_R['s'] - P.ARCH_R['r'] - 2
-    ss = np.linspace(s0, s1, 14)
+    ss = np.concatenate([[s0, s0 + 18.0], np.linspace(s0 + 45.0, s1 - 45.0, 12), [s1 - 18.0, s1]])
+    taper = np.ones(len(ss))
+    taper[[0, -1]] = 0.35
+    taper[[1, -2]] = 0.8
     rows = []
-    for s in ss:
+    for s, h in zip(ss, taper):
         wt = float(P.W_side(s, P.ROCKER_Z))
-        prof = [(wt - 6, P.ROCKER_Z + 8), (wt + 1, P.ROCKER_Z - 2), (wt + 4, 225.0),
-                (wt + 3, 190.0), (wt - 4, 176.0), (wt - 18, 172.0), (wt - 120, 172.0)]
+        lift = (1 - h) * 34.0                    # ends curl up and in: no sharp tips
+        prof = [(wt - 6, P.ROCKER_Z + 8), (wt + 1 * h, P.ROCKER_Z - 2), (wt + 4 * h, 225.0 + lift * 0.3),
+                (wt + 3 * h, 190.0 + lift * 0.8), (wt - 4 - 6 * (1 - h), 176.0 + lift),
+                (wt - 18, 172.0 + lift), (wt - 120, 172.0 + lift)]
         rows.append([(s, w, z) for (w, z) in prof])
     G = np.array(rows)
     mb.grid(G, 0, flip=True)
+    # inner wall closes the skirt so it is solid when seen from under the car
+    mb.grid(np.stack([G[:, -1], G[:, 0]], axis=1), 0, flip=True)
     mb.mark_chain([mb.v(p) for p in G[:, 1]])
     mb.mark_chain([mb.v(p) for p in G[:, 4]])
     # end caps
@@ -709,11 +799,14 @@ def wheel_wells(info):
 
 
 def floor_mb():
-    """Flat underbody panel that closes the shell from below."""
+    """Flat underbody panels that close the shell from below (front panel
+    hides the pop-up buckets, rear panel sits above the tail pipe)."""
     mb = MeshBuilder()
-    Z, W_IN = 205.0, 470.0
-    for (s0, s1, w0, w1) in ((250.0, 4000.0, 0.0, W_IN), (1235.0, 2905.0, W_IN, 735.0)):
-        ss = np.linspace(s0, s1, 4)
+    for (s0, s1, w0, w1, Z) in ((165.0, 525.0, 0.0, 650.0, 232.0),
+                                (500.0, 3600.0, 0.0, 470.0, 205.0),
+                                (1235.0, 2905.0, 470.0, 735.0, 205.0),
+                                (3590.0, 4170.0, 0.0, 700.0, 246.0)):
+        ss = np.linspace(s0, s1, max(2, int((s1 - s0) / 900.0) + 2))
         g = np.array([[(s, w, Z) for w in (w0, w1)] for s in ss])
         mb.grid(g, 0)
     return mb

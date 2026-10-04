@@ -4,7 +4,7 @@
   "offsets_frame": "[left, up, back] in metres, relative to the bounding-box centre",
   "parts": {
     "Body": {
-      "tris": 7114,
+      "tris": 6824,
       "origin_blender_m": [
         0.0,
         0.0,
@@ -12,18 +12,18 @@
       ],
       "bbox_center_blender_m": [
         0.0,
-        0.0885,
+        0.0935,
         0.7696
       ],
       "size_m": [
         1.8448,
         1.1292,
-        4.017
+        4.027
       ],
       "origin_minus_bbox_center_m": [
         0.0,
         -0.7696,
-        -0.0885
+        -0.0935
       ]
     },
     "Glass": {
@@ -50,7 +50,7 @@
       ]
     },
     "Bumper_Front": {
-      "tris": 1390,
+      "tris": 2056,
       "origin_blender_m": [
         0.0,
         0.0,
@@ -58,22 +58,22 @@
       ],
       "bbox_center_blender_m": [
         0.0,
-        -1.74932,
-        0.40988
+        -1.76457,
+        0.407
       ],
       "size_m": [
-        1.593,
-        0.35976,
-        0.6217
+        1.58238,
+        0.358,
+        0.59144
       ],
       "origin_minus_bbox_center_m": [
         0.0,
-        -0.40988,
-        1.74932
+        -0.407,
+        1.76457
       ]
     },
     "Bumper_Rear": {
-      "tris": 986,
+      "tris": 1188,
       "origin_blender_m": [
         0.0,
         0.0,
@@ -81,22 +81,22 @@
       ],
       "bbox_center_blender_m": [
         0.0,
-        1.78668,
+        1.81169,
         0.35873
       ],
       "size_m": [
-        1.5965,
+        1.58905,
         0.36453,
-        0.71897
+        0.66897
       ],
       "origin_minus_bbox_center_m": [
         0.0,
         -0.35873,
-        -1.78668
+        -1.81169
       ]
     },
     "Skirt_L": {
-      "tris": 168,
+      "tris": 222,
       "origin_blender_m": [
         0.0,
         0.0,
@@ -119,7 +119,7 @@
       ]
     },
     "Skirt_R": {
-      "tris": 168,
+      "tris": 222,
       "origin_blender_m": [
         0.0,
         0.0,
@@ -192,7 +192,7 @@
       "hinge_axis": "part X axis; positive rotation opens (front rises)"
     },
     "Lights_Front": {
-      "tris": 224,
+      "tris": 212,
       "origin_blender_m": [
         0.0,
         0.0,
@@ -200,18 +200,18 @@
       ],
       "bbox_center_blender_m": [
         0.0,
-        -1.89359,
-        0.5625
+        -1.89415,
+        0.561
       ],
       "size_m": [
         1.48142,
-        0.173,
-        0.31317
+        0.176,
+        0.31429
       ],
       "origin_minus_bbox_center_m": [
         0.0,
-        -0.5625,
-        1.89359
+        -0.561,
+        1.89415
       ]
     },
     "Lights_Rear": {
@@ -330,5 +330,5 @@
       ]
     }
   },
-  "total_tris": 14110
+  "total_tris": 14784
 }

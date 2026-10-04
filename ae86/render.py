@@ -217,7 +217,13 @@ def backface_check_materials():
     red.inputs['Color'].default_value = (1, 0, 0, 1)
     red.inputs['Strength'].default_value = 2.0
     mix = nt.nodes.new('ShaderNodeMixShader')
-    nt.links.new(geo.outputs['Backfacing'], mix.inputs['Fac'])
+    # only camera rays turn red, so red emission does not light neighbours
+    lp = nt.nodes.new('ShaderNodeLightPath')
+    mul = nt.nodes.new('ShaderNodeMath')
+    mul.operation = 'MULTIPLY'
+    nt.links.new(geo.outputs['Backfacing'], mul.inputs[0])
+    nt.links.new(lp.outputs['Is Camera Ray'], mul.inputs[1])
+    nt.links.new(mul.outputs['Value'], mix.inputs['Fac'])
     nt.links.new(bsdf.outputs['BSDF'], mix.inputs[1])
     nt.links.new(red.outputs['Emission'], mix.inputs[2])
     nt.links.new(mix.outputs['Shader'], nt.nodes['Material Output'].inputs['Surface'])
