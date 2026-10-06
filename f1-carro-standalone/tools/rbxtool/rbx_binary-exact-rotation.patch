@@ -1,0 +1,20 @@
+--- /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rbx_binary-3.0.1/src/serializer/state.rs	2006-07-24 01:21:28.000000000 +0000
++++ vendor/rbx_binary/src/serializer/state.rs	2026-10-06 13:35:31.857849830 +0000
+@@ -1260,7 +1260,7 @@
+                         }
+ 
+                         for matrix in rotations {
+-                            if let Some(id) = matrix.to_basic_rotation_id() {
++                            if let Some(id) = matrix.to_basic_rotation_id().filter(|id| rbx_dom_weak::types::Matrix3::from_basic_rotation_id(*id).map(|m| m == matrix).unwrap_or(false)) {
+                                 chunk.write_u8(id)?;
+                             } else {
+                                 chunk.write_u8(0x00)?;
+@@ -1522,7 +1522,7 @@
+                         }
+ 
+                         for matrix in rotations {
+-                            if let Some(id) = matrix.to_basic_rotation_id() {
++                            if let Some(id) = matrix.to_basic_rotation_id().filter(|id| rbx_dom_weak::types::Matrix3::from_basic_rotation_id(*id).map(|m| m == matrix).unwrap_or(false)) {
+                                 chunk.write_u8(id)?;
+                             } else {
+                                 chunk.write_u8(0x00)?;
