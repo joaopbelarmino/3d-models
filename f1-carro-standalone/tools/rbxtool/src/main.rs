@@ -120,6 +120,7 @@ fn main() {
             let refs = dom.root().children().to_vec();
             save(&dom, &refs, &a[3]);
         }
+        "place" => place_into(&a[2], &a[3], &a[4], &a[5]),
         "build" => build(&a[2], &a[3], &a[4], &a[5]),
         _ => panic!("unknown cmd"),
     }
@@ -397,4 +398,183 @@ fn build(input: &str, srcdir: &str, out_place: &str, out_pkg: &str) {
         pkg.transfer_within(*c, *dest);
     }
     save(&pkg, &[proot], out_pkg);
+}
+
+// ---------------------------------------------------------------------------
+// place: put the standalone package into another map (Spa)
+// ---------------------------------------------------------------------------
+use rbx_dom_weak::types::Matrix3;
+
+fn mrow(m: &Matrix3, i: usize) -> [f32; 3] {
+    let r = [m.x, m.y, m.z][i];
+    [r.x, r.y, r.z]
+}
+fn mat_mul(a: &Matrix3, b: &Matrix3) -> Matrix3 {
+    // rows convention: (a*b)[i][j] = sum_k a[i][k] * b[k][j]
+    let ar: Vec<[f32; 3]> = (0..3).map(|i| mrow(a, i)).collect();
+    let br: Vec<[f32; 3]> = (0..3).map(|i| mrow(b, i)).collect();
+    let mut o = [[0f32; 3]; 3];
+    for i in 0..3 { for j in 0..3 { o[i][j] = (0..3).map(|k| ar[i][k] * br[k][j]).sum(); } }
+    Matrix3::new(Vector3::new(o[0][0], o[0][1], o[0][2]), Vector3::new(o[1][0], o[1][1], o[1][2]), Vector3::new(o[2][0], o[2][1], o[2][2]))
+}
+fn mat_vec(a: &Matrix3, v: Vector3) -> Vector3 {
+    let r = |i| { let r = mrow(a, i); r[0] * v.x + r[1] * v.y + r[2] * v.z };
+    Vector3::new(r(0), r(1), r(2))
+}
+fn cf_mul(a: &CFrame, b: &CFrame) -> CFrame {
+    let p = mat_vec(&a.orientation, b.position);
+    CFrame::new(Vector3::new(p.x + a.position.x, p.y + a.position.y, p.z + a.position.z), mat_mul(&a.orientation, &b.orientation))
+}
+fn cf_inv(a: &CFrame) -> CFrame {
+    let rt = a.orientation.transpose();
+    let p = mat_vec(&rt, a.position);
+    CFrame::new(Vector3::new(-p.x, -p.y, -p.z), rt)
+}
+
+fn transform_tree(dom: &mut WeakDom, root: Ref, t: &CFrame) {
+    let refs: Vec<Ref> = dom.descendants_of(root).map(|i| i.referent()).collect();
+    for r in refs {
+        let inst = dom.get_by_ref_mut(r).unwrap();
+        let class = inst.class.to_string();
+        if BASEPART.contains(&class.as_str()) {
+            if let Some(Variant::CFrame(cf)) = inst.properties.get_mut(&"CFrame".into()) { *cf = cf_mul(t, cf); }
+        }
+        if class == "Model" {
+            if let Some(Variant::OptionalCFrame(Some(cf))) = inst.properties.get_mut(&"WorldPivotData".into()) { *cf = cf_mul(t, cf); }
+            if let Some(Variant::CFrame(cf)) = inst.properties.get_mut(&"ModelMeshCFrame".into()) { *cf = cf_mul(t, cf); }
+        }
+    }
+}
+
+fn get_or_create(dom: &mut WeakDom, parent: Ref, class: &str, name: &str) -> Ref {
+    if let Some(r) = child(dom, parent, name) { return r; }
+    dom.insert(parent, InstanceBuilder::new(class).with_name(name))
+}
+
+fn pos_of(dom: &WeakDom, r: Ref) -> Vector3 { cframe_of(dom, r).position }
+
+fn place_into(map: &str, pkg_path: &str, italy: &str, out: &str) {
+    let mut dom = load(map);
+    let pkg = load(pkg_path);
+    let it = load(italy);
+
+    // exact physical properties of the original game's track surfaces
+    let it_pista = find(&it, "Workspace/Pista");
+    let track_pp = it.get_by_ref(it_pista).unwrap().children().iter().copied().find_map(|c| {
+        let i = it.get_by_ref(c).unwrap();
+        if i.name == "Track" && i.class == "Part" && matches!(i.properties.get(&"CanCollide".into()), Some(Variant::Bool(true))) {
+            i.properties.get(&"CustomPhysicalProperties".into()).cloned()
+        } else { None }
+    }).unwrap();
+    // most common grass physics in the original map (35 parts): density 2.403, friction 2, elasticity 0.1, weights 0
+    let it_grass = find(&it, "Workspace/Grass");
+    let grass_pp = it.get_by_ref(it_grass).unwrap().children().iter().copied().find_map(|c| {
+        match it.get_by_ref(c).unwrap().properties.get(&"CustomPhysicalProperties".into()) {
+            Some(v @ Variant::PhysicalProperties(rbx_dom_weak::types::PhysicalProperties::Custom(cp))) if (cp.elasticity() - 0.1).abs() < 1e-6 => Some(v.clone()),
+            _ => None,
+        }
+    }).unwrap();
+    println!("track pp {:?}\ngrass pp {:?}", track_pp, grass_pp);
+
+    let ws = find(&dom, "Workspace");
+    // workspace settings as in the original game
+    set_prop(&mut dom, ws, "StreamingEnabled", Variant::Bool(false));
+    {
+        let inst = dom.get_by_ref_mut(ws).unwrap();
+        let mut attrs = match inst.properties.remove(&"Attributes".into()) { Some(Variant::Attributes(a)) => a, _ => Attributes::new() };
+        attrs.insert("ChuvaType".to_string(), Variant::String("SUN".to_string()));
+        inst.properties.insert("Attributes".into(), Variant::Attributes(attrs));
+    }
+
+    // drivable surfaces -> original track physics
+    let mut counts: Vec<(String, usize)> = vec![];
+    let groups: [(&str, &Variant); 6] = [
+        ("Workspace/Spa/Pista/Superficie", &track_pp),
+        ("Workspace/Spa/PitLane/Superficie", &track_pp),
+        ("Workspace/Spa/PitLane/Entrada", &track_pp),
+        ("Workspace/Spa/PitLane/Saida", &track_pp),
+        ("Workspace/Spa/PitLane/AreaDosBoxes", &track_pp),
+        ("Workspace/Spa/PitLane/Paddock", &track_pp),
+    ];
+    let terreno = find(&dom, "Workspace/Spa/Terreno");
+    let mut all: Vec<(Ref, Variant)> = vec![];
+    for (p, pp) in groups.iter() {
+        let r = find(&dom, p);
+        let n = dom.descendants_of(r).filter(|i| BASEPART.contains(&i.class.as_str())).map(|i| { all.push((i.referent(), (*pp).clone())); }).count();
+        counts.push((p.to_string(), n));
+    }
+    let n = dom.descendants_of(terreno).filter(|i| BASEPART.contains(&i.class.as_str())
+        && matches!(i.properties.get(&"CanCollide".into()), Some(Variant::Bool(true)) | None))
+        .map(|i| { all.push((i.referent(), grass_pp.clone())); }).count();
+    counts.push(("Workspace/Spa/Terreno (grama)".into(), n));
+    for (r, pp) in all { set_prop(&mut dom, r, "CustomPhysicalProperties", pp); }
+    println!("physics applied: {:?}", counts);
+
+    // services
+    let root = dom.root_ref();
+    let rs = get_or_create(&mut dom, root, "ReplicatedStorage", "ReplicatedStorage");
+    let sss = get_or_create(&mut dom, root, "ServerScriptService", "ServerScriptService");
+    let ss = get_or_create(&mut dom, root, "ServerStorage", "ServerStorage");
+    let sg = get_or_create(&mut dom, root, "StarterGui", "StarterGui");
+    let sp = get_or_create(&mut dom, root, "StarterPlayer", "StarterPlayer");
+    let spc = get_or_create(&mut dom, sp, "StarterCharacterScripts", "StarterCharacterScripts");
+    let _sps = get_or_create(&mut dom, sp, "StarterPlayerScripts", "StarterPlayerScripts");
+
+    let pf = |p: &str| find(&pkg, &format!("F1_Carro_Standalone/{p}"));
+    let items: Vec<(Ref, Ref)> = vec![
+        (pf("Workspace/Carro"), ws),
+        (pf("ReplicatedStorage/EventsCar"), rs),
+        (pf("ReplicatedStorage/ModuleCar"), rs),
+        (pf("ServerScriptService/CarroStandalone"), sss),
+        (pf("StarterGui/GUIcar"), sg),
+        (pf("StarterGui/GUIMobileCar"), sg),
+        (pf("StarterPlayer/StarterCharacterScripts/ScriptCarro"), spc),
+        (pf("LEIA-ME"), ss),
+    ];
+    let srcs: Vec<Ref> = items.iter().map(|(s, _)| *s).collect();
+    let clones = pkg.clone_multiple_into_external(&srcs, &mut dom);
+    for (c, (_, dest)) in clones.iter().zip(items.iter()) { dom.transfer_within(*c, *dest); }
+    let car = clones[0];
+
+    // ---- put the car on grid slot 1, pointing in the race direction ----
+    let g1 = find(&dom, "Workspace/Spa/Pista/Grid/GridPos01");
+    let g3 = find(&dom, "Workspace/Spa/Pista/Grid/GridPos03");
+    let (p1, p3) = (pos_of(&dom, g1), pos_of(&dom, g3));
+    let (dx, dz) = (p1.x - p3.x, p1.z - p3.z);
+    let l = (dx * dx + dz * dz).sqrt();
+    let fwd = (dx / l, dz / l); // race direction (grid 3 -> grid 1)
+    // car forward = from body centre towards the front wing, horizontal
+    let corpo = find(&dom, "Workspace/Carro/Corpo");
+    let asa = find(&dom, "Workspace/Carro/Corpo/AsaFrontal");
+    let (pc, pa) = (pos_of(&dom, corpo), pos_of(&dom, asa));
+    let (cx, cz) = (pa.x - pc.x, pa.z - pc.z);
+    let cl = (cx * cx + cz * cz).sqrt();
+    let carf = (cx / cl, cz / cl);
+    // yaw angle rotating carf onto fwd (rotation about +Y: x' = x cos + z sin, z' = -x sin + z cos)
+    let ang = (carf.0 * fwd.1 - carf.1 * fwd.0).atan2(carf.0 * fwd.0 + carf.1 * fwd.1);
+    let theta = -ang;
+    let (c, s) = (theta.cos(), theta.sin());
+    let rot = Matrix3::new(Vector3::new(c, 0.0, s), Vector3::new(0.0, 1.0, 0.0), Vector3::new(-s, 0.0, c));
+    let pivot = match dom.get_by_ref(car).unwrap().properties.get(&"WorldPivotData".into()) { Some(Variant::OptionalCFrame(Some(c))) => *c, _ => panic!() };
+    // lowest wheel point relative to pivot height
+    let mut min_y = f32::MAX;
+    for w in ["Chassi/EixoFE/RodaFE", "Chassi/EixoFD/RodaFD", "Chassi/EixoT/RodaTD", "Chassi/EixoT/RodaTE"] {
+        let r = find(&dom, &format!("Workspace/Carro/{w}"));
+        min_y = min_y.min(pos_of(&dom, r).y - size_of(&dom, r).y / 2.0);
+    }
+    let pivot_above_wheels = pivot.position.y - min_y;
+    // target: 12 studs behind the grid line of slot 1 (car body is ~23 studs long), on the surface
+    let g1_top = p1.y + size_of(&dom, g1).y / 2.0;
+    let target_pos = Vector3::new(p1.x - fwd.0 * 12.0, g1_top + 0.05 + pivot_above_wheels, p1.z - fwd.1 * 12.0);
+    // T maps the old pivot to (target_pos, rot * old orientation)
+    let target = CFrame::new(target_pos, mat_mul(&rot, &pivot.orientation));
+    let t = cf_mul(&target, &cf_inv(&pivot));
+    transform_tree(&mut dom, car, &t);
+    let (pc2, pa2) = (pos_of(&dom, find(&dom, "Workspace/Carro/Corpo")), pos_of(&dom, find(&dom, "Workspace/Carro/Corpo/AsaFrontal")));
+    let nf = ((pa2.x - pc2.x), (pa2.z - pc2.z));
+    let nl = (nf.0 * nf.0 + nf.1 * nf.1).sqrt();
+    println!("race dir {:?}; car forward after = ({:.4},{:.4}); grid1 {:?}; car pivot -> {:?}", fwd, nf.0 / nl, nf.1 / nl, p1, target_pos);
+
+    let top = dom.root().children().to_vec();
+    save(&dom, &top, out);
 }

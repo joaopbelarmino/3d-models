@@ -8,6 +8,7 @@ os attachments, as câmeras e o HUD de pilotagem continuam os do original.
 | arquivo | para que serve |
 |---|---|
 | `F1_Carro_Standalone_Teste.rbxl` | Mapa de teste pronto. Abra no Studio, aperte **Play** e sente no carro. |
+| `Spa_F1_Teste.rbxl` | Spa-Francorchamps com o carro instalado, no grid (posição 1). Abra e aperte **Play**. |
 | `F1_Carro_Standalone.rbxm` | Pacote com tudo que o carro precisa. Arraste para o Studio e distribua as pastas (tabela abaixo). |
 | `src/` | Os scripts em texto, para ler e comparar. |
 | `tools/` | Ferramentas usadas na extração e na validação (ver "Como foi validado"). |
@@ -44,6 +45,30 @@ Como o `FrictionWeight` do chão é 0, só conta o atrito do pneu (0.8 atrás e 
 Num chão padrão (Plastic, `FrictionWeight` 1) o atrito efetivo cai para cerca de 0.47 e o carro fica
 bem mais solto. **Use esses mesmos valores nas peças da pista nova.** No mapa de teste o chão
 (`PistaTeste`) é uma cópia de uma peça `Track` da pista original, com esses valores.
+
+## Spa-Francorchamps (`Spa_F1_Teste.rbxl`)
+
+É o `SpaFrancorchamps_v3.rbxl` com o pacote instalado do jeito descrito acima, mais estes ajustes:
+
+* **Carro na posição 1 do grid** (`Spa/Pista/Grid/GridPos01`), 12 studs atrás da linha da posição,
+  com o bico no sentido da corrida. O jogador nasce no `SpawnPitLane`, que já existia no mapa; é
+  só ir até o grid e sentar.
+* **Física das superfícies igual à do jogo original.** No `v3` nenhuma peça tinha
+  `CustomPhysicalProperties`, então valiam os padrões do material. No asfalto padrão a dianteira teria
+  mais aderência (≈0.77 em vez de 0.7), e na grama padrão o carro perderia grip (≈0.53 em vez de 0.8).
+  Foram aplicados os valores exatos das peças do mapa da Itália:
+  * Asfalto da pista e do pit (`Pista/Superficie`, `PitLane/Superficie`, `Entrada`, `Saida`,
+    `AreaDosBoxes`, `Paddock`), 9.048 peças: `Density 0.0001, Friction 0.5, Elasticity 0,
+    FrictionWeight 0, ElasticityWeight 0`.
+  * Grama (`Terreno`), 9.340 peças: `Density 2.403, Friction 2, Elasticity 0.1, FrictionWeight 0,
+    ElasticityWeight 0`. No jogo original a grama tinha `FrictionWeight 0`, ou seja, o mesmo grip do
+    asfalto. Se quiser a grama escorregadia, remova os `CustomPhysicalProperties` da pasta `Terreno`.
+  * Zebras, linhas e marcações continuam sem colisão, como estavam. Guard rails e muros ficaram com
+    o material padrão, como os muros do mapa original.
+* **`Workspace.StreamingEnabled = false`**, como no jogo original. O `v3` vinha com streaming
+  ligado; com ele, peças do carro podem não ter chegado ao cliente quando o servidor envia os dados
+  no `Join`.
+* **`workspace.ChuvaType = "SUN"`**, como no jogo original.
 
 ## Controles (os mesmos do jogo)
 
