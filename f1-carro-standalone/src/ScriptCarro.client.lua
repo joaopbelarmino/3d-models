@@ -121,6 +121,7 @@ local isfirt = true
 -- de novo para o carro novo (o loop por frame é o mesmo).
 local carroAtual
 local conexoesCarro = {}
+local personagemOculto = false -- [CHASSI] usado só quando o carro não tem Maos
 function RunCar(dados, som: Sound, marchasV, Gforce)
 	isfirt = false
 	for _, c in ipairs(conexoesCarro) do
@@ -181,7 +182,7 @@ function RunCar(dados, som: Sound, marchasV, Gforce)
 		minSound   = minSound,
 		Maxsound   = Maxsound,
 		MaxVolume  = MaxVolume,
-		ClickParent = VolanteS.Parent, -- click de marcha vindo do volante
+		ClickParent = VolanteS and VolanteS.Parent, -- click de marcha vindo do volante ([CHASSI] sem volante: vai para o chassi)
 	})
 
 	local control
@@ -224,7 +225,25 @@ function RunCar(dados, som: Sound, marchasV, Gforce)
 		elseif camPosition ~= 5 then
 			camera.CameraType = Enum.CameraType.Scriptable
 			camera.CFrame = cameras[camPosition].CFrame
-			if camPosition == 1 and carro.Parent.Maos.M1.LeftLowerArm.Transparency == 0 then
+			local maos = carro.Parent:FindFirstChild("Maos") -- [CHASSI] o carro só-chassi não tem mãos
+			if not maos then
+				-- mesmo efeito do bloco abaixo (esconder o personagem na câmera 1), sem as mãos
+				if camPosition == 1 and not personagemOculto then
+					personagemOculto = true
+					for i,v :Part in ipairs(character:GetDescendants()) do
+						if v:IsA('MeshPart') then
+							v.Transparency = 1
+						end
+					end
+				elseif camPosition ~= 1 and personagemOculto then
+					personagemOculto = false
+					for i,v :Part in ipairs(character:GetDescendants()) do
+						if v:IsA('MeshPart') then
+							v.Transparency = 0
+						end
+					end
+				end
+			elseif camPosition == 1 and carro.Parent.Maos.M1.LeftLowerArm.Transparency == 0 then
 				for i,v : Part in ipairs(carro.Parent.Maos:GetDescendants()) do
 					if v:IsA('MeshPart') then
 						v.Transparency = 1
@@ -342,11 +361,11 @@ function RunCar(dados, som: Sound, marchasV, Gforce)
 		if DRS then
 			DRSGUI.Text = "ON"
 			DRSGUI.TextColor = BrickColor.new(0.101961, 1, 0)
-			DrsServo.TargetAngle = 35
+			if DrsServo then DrsServo.TargetAngle = 35 end -- [CHASSI] carro só-chassi não tem a aba do DRS
 		else
 			DRSGUI.Text = "OFF"
 			DRSGUI.TextColor = BrickColor.new(1, 0, 0.0156863)
-			DrsServo.TargetAngle = 0
+			if DrsServo then DrsServo.TargetAngle = 0 end
 		end
 
 		-- ---------------------------

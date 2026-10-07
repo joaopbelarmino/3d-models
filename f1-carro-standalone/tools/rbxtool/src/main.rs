@@ -620,22 +620,54 @@ fn chassis(input: &str, srcdir: &str, out: &str) {
         cur
     };
 
-    // ---------------- 1. remove purely visual pieces ----------------
+    // ---------------- 1. remove ALL 3D models (MeshParts) ----------------
+    let chassi_r = p(&dom, "Chassi");
+    let corpo_r = p(&dom, "Corpo");
+    // the slipstream target plate is a plain Part: keep it, hanging from the chassis (it is already welded to it)
+    let vacuo = p(&dom, "Corpo/Vacuo");
+    dom.transfer_within(vacuo, chassi_r);
+    // cameras and RAY sensors are welded to Corpo, which was welded to Chassi: weld them straight to Chassi
+    let welds: Vec<Ref> = dom.descendants_of(car).filter(|i| i.class == "WeldConstraint").map(|i| i.referent()).collect();
+    for w in welds {
+        for key in ["Part0", "Part1"] {
+            let hit = matches!(dom.get_by_ref(w).unwrap().properties.get(&key.into()), Some(Variant::Ref(x)) if *x == corpo_r);
+            if hit { set_prop(&mut dom, w, key, Variant::Ref(chassi_r)); }
+        }
+    }
+    // attachment users before removal (to drop attachments left without any constraint)
+    let att_users = |dom: &WeakDom| -> HashMap<Ref, usize> {
+        let mut m = HashMap::new();
+        for i in dom.descendants_of(car) {
+            for key in ["Attachment0", "Attachment1"] {
+                if let Some(Variant::Ref(a)) = i.properties.get(&key.into()) { if a.is_some() { *m.entry(*a).or_insert(0) += 1; } }
+            }
+        }
+        m
+    };
+    let before = att_users(&dom);
     let remove = [
-        "Corpo/EixoFrontal", "Corpo/EixoTraseiro", "Corpo/Escapamento",
+        "Corpo", "Chassi/Volante", "Maos",
         "Chassi/EixoFD/RodaFD/Pneu", "Chassi/EixoFE/RodaFE/Pneu", "Chassi/EixoT/RodaTD/Pneu", "Chassi/EixoT/RodaTE/Pneu",
-        "Highlight", "Chassi/Volante/SurfaceGui",
+        "Highlight",
     ];
     for rel in remove {
         let r = p(&dom, rel);
-        // safety: any BasePart removed must be massless, non-colliding, and welded (never an assembly root here)
-        for d in dom.descendants_of(r) {
-            if BASEPART.contains(&d.class.as_str()) {
-                assert!(matches!(d.properties.get(&"Massless".into()), Some(Variant::Bool(true))), "{} not massless", d.name);
-                assert!(matches!(d.properties.get(&"CanCollide".into()), Some(Variant::Bool(false))), "{} collides", d.name);
-            }
-        }
+        let n: Vec<String> = dom.descendants_of(r).filter(|i| BASEPART.contains(&i.class.as_str())).map(|i| format!("{}[{}]", i.name, i.class)).collect();
+        println!("remove {rel}: {:?}", n);
         dom.destroy(r);
+    }
+    let after = att_users(&dom);
+    let orphans: Vec<Ref> = before.keys().filter(|a| dom.get_by_ref(**a).is_some() && !after.contains_key(*a)).copied().collect();
+    for a in orphans {
+        println!("remove orphan attachment {}", rel_path(&dom, car, a));
+        dom.destroy(a);
+    }
+    // nothing left may point at a removed instance
+    for i in dom.descendants_of(car) {
+        for (k, v) in i.properties.iter() {
+            if let Variant::Ref(x) = v { assert!(x.is_none() || dom.get_by_ref(*x).is_some(), "dangling {} on {}", k, i.name); }
+        }
+        assert!(i.class != "MeshPart", "MeshPart left: {}", i.name);
     }
 
     // ---------------- 2. server script for this copy ----------------
@@ -692,19 +724,13 @@ fn chassis(input: &str, srcdir: &str, out: &str) {
     let parts: Vec<(&str, &str, f32)> = vec![
         ("Chassi", "Chassi", 0.0), ("Chassi/SeatM", "Chassi", 0.0),
         ("Chassi/EixoT", "Suporte", 0.0), ("Chassi/EixoFD", "Suporte", 0.0), ("Chassi/EixoFE", "Suporte", 0.0),
-        ("Chassi/Volante", "Direcao", 0.0),
-        ("Maos/M1", "Direcao", 0.0), ("Maos/M1/LeftLowerArm", "Direcao", 0.0), ("Maos/M1/LeftUpperArm", "Direcao", 0.0),
-        ("Maos/M2", "Direcao", 0.0), ("Maos/M2/RightLowerArm", "Direcao", 0.0), ("Maos/M2/RightUpperArm", "Direcao", 0.0),
         ("Chassi/EixoFD/RodaFD", "Roda", 0.0), ("Chassi/EixoFE/RodaFE", "Roda", 0.0),
         ("Chassi/EixoT/RodaTD", "Roda", 0.0), ("Chassi/EixoT/RodaTE", "Roda", 0.0),
         ("Chassi/Cam1", "Camera", 0.3), ("Chassi/Cam2", "Camera", 0.3), ("Chassi/Cam3", "Camera", 0.3),
         ("Chassi/Cam4", "Camera", 0.3), ("Chassi/CamR", "Camera", 0.3),
         ("Chassi/RAYFD", "OutraFisica", 0.0), ("Chassi/RAYFE", "OutraFisica", 0.0), ("Chassi/RAYTD", "OutraFisica", 0.0),
         ("Chassi/RAYTE", "OutraFisica", 0.0), ("Chassi/RAYVACUO", "OutraFisica", 0.0),
-        ("Corpo/DRS", "OutraFisica", 0.0),
-        // colliders / aero masses kept for identical physics, shown translucent
-        ("Corpo", "OutraFisica", 0.8), ("Corpo/AsaFrontal", "OutraFisica", 0.7), ("Corpo/AsaCopia", "OutraFisica", 0.9),
-        ("Corpo/aerofolio", "OutraFisica", 0.7), ("Corpo/Vacuo", "OutraFisica", 0.9),
+        ("Chassi/Vacuo", "OutraFisica", 0.85), // placa que o vácuo de OUTRO carro detecta (sem colisão)
     ];
     for (rel, cat, tr) in &parts {
         let r = p(&dom, rel);

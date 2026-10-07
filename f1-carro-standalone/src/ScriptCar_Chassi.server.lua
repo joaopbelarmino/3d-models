@@ -11,16 +11,17 @@
 	Linhas alteradas em relação ao original estão marcadas com [STANDALONE].
 
 	VERSÃO SÓ CHASSI (Carro_Chassi): igual ao ScriptCar do carro completo,
-	com duas mudanças marcadas com [CHASSI], ambas só visuais:
-	  1. os pneus 3D (Pneu/Aro) foram removidos, então a troca de textura do
-	     composto só acontece se o Pneu existir (o atrito continua igual);
-	  2. a asa dianteira é um colisor translúcido; ao reparar, ela volta à
-	     transparência que tinha no início, em vez de 0.
+	mas o carro não tem nenhum modelo 3D (sem Corpo, asas, aerofólio, DRS,
+	volante, mãos e pneus 3D). As linhas que dependiam deles estão marcadas
+	com [CHASSI]: sem carroceria não há quebra de asa (e por isso também não
+	há quebra de eixo, que só acontecia com a asa quebrada).
+	Tuning, motor, freio, câmbio, direção, downforce, atrito por clima,
+	anti-capotamento e dono de rede são os mesmos.
 ]]
 
 local carro = script.Parent
-local lataria = carro.Parent.Corpo
-local model = lataria.Parent
+local model = carro.Parent
+local lataria = model:FindFirstChild("Corpo") -- [CHASSI] nil: o carro só-chassi não tem carroceria
 
 local replicate = game:GetService("ReplicatedStorage")
 local Events    = replicate.EventsCar
@@ -46,8 +47,9 @@ local RodaFD = carro.EixoFD.RodaFD
 local DownForce = carro.DownForce
 local Desvirar = carro.Destombar
 local SeatM     = carro.SeatM
-local VolanteS  = carro.Volante.Servo
-local DrsServo = carro.Parent.Corpo.DRS.HingeConstraint
+-- [CHASSI] sem volante e sem aba do DRS: o cliente já trata nil
+local VolanteS  = carro:FindFirstChild("Volante") and carro.Volante.Servo
+local DrsServo = lataria and lataria:FindFirstChild("DRS") and lataria.DRS.HingeConstraint
 
 local maxG     = -2000
 local ASL = carro.AssemblyLinearVelocity
@@ -86,9 +88,6 @@ local cameras = {
 -- exatamente com as mesmas fórmulas do SpawnCarro original.
 ------------------------------------------------------------------------
 local Config = model:FindFirstChild("Config")
-
--- [CHASSI] transparência inicial da asa dianteira (colisor translúcido)
-local TRANSP_ASA = model.Corpo.AsaFrontal.Transparency
 
 local function AplicarTuning()
 	if not Config or Config:GetAttribute("AplicarTuning") == false then
@@ -278,7 +277,7 @@ function MudarComposto()
 		orig.ElasticityWeight
 	)
 	local compostoAtual = Compostos[Clima]
-	-- [CHASSI] Pneu (malha 3D) removido nesta versão: só textura, sem efeito na física
+	-- [CHASSI] sem pneu 3D: só a textura deixa de ser trocada; o atrito abaixo é o mesmo
 	for _, roda in ipairs({RodaTD, RodaFD, RodaTE, RodaFE}) do
 		local pneu = roda:FindFirstChild("Pneu")
 		if pneu then
@@ -347,7 +346,6 @@ function Destombar()
 end
 
 
-local asaFrontal = model.Corpo.AsaFrontal
 
 run.Heartbeat:Connect(function(D)
 	local x, z = carro.Orientation.X, carro.Orientation.Z
@@ -360,7 +358,7 @@ run.Heartbeat:Connect(function(D)
 
 	local AsaBroken, EixoFdBroken, EixoFeBroken = carro:GetAttribute('AsaBroken'), carro:GetAttribute('EixoFdBroken'), carro:GetAttribute('EixoFeBroken')
 
-	if model.Corpo:FindFirstChild('AsaFrontal') then
+	if lataria and lataria:FindFirstChild('AsaFrontal') then -- [CHASSI] sem carroceria, sem asa
 		if math.abs(model.Corpo.AsaFrontal.Quebrar.CurrentAngle) > 15 and not AsaBroken then
 			carro:SetAttribute('AsaBroken', true)
 			local BrokenAsa = model.Corpo.AsaFrontal:Clone()
@@ -408,8 +406,10 @@ function RepairAll()
 	local AsaBroken, EixoFdBroken, EixoFeBroken = carro:GetAttribute('AsaBroken'), carro:GetAttribute('EixoFdBroken'), carro:GetAttribute('EixoFeBroken')
 	if AsaBroken then
 		carro:SetAttribute('AsaBroken', false)
-		model.Corpo.AsaFrontal.Transparency = TRANSP_ASA -- [CHASSI]
-		model.Corpo.AsaFrontal.CanCollide = true
+		if lataria and lataria:FindFirstChild('AsaFrontal') then -- [CHASSI]
+			model.Corpo.AsaFrontal.Transparency = 0
+			model.Corpo.AsaFrontal.CanCollide = true
+		end
 	end
 
 	if EixoFeBroken then

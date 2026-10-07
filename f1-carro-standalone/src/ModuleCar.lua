@@ -132,18 +132,23 @@ function module.Direcao(direcaoD,direcaoE,VolanteS,MaxAng,TX)
 	direcaoD.TargetAngle = TX * MaxAng
 	direcaoE.TargetAngle = TX * MaxAng
 	local MediaDir = (direcaoD.CurrentAngle + direcaoE.CurrentAngle) / 2
-	VolanteS.TargetAngle = MediaDir * 12
+	if VolanteS then -- [CHASSI] o carro só-chassi não tem volante
+		VolanteS.TargetAngle = MediaDir * 12
+	end
 end
 
 function module.vacuo(carro, ExtraForce, MaxDistanceVacuo, VacuoForceExtra, MaxSpeed)
-	local corpo = carro.Parent.Corpo
+	local corpo = carro.Parent:FindFirstChild("Corpo")
+	if not corpo then -- [CHASSI] o carro só-chassi não tem carroceria: sem vácuo
+		return ExtraForce
+	end
 	local distancia = 200
 	local diretion = (carro.RAYVACUO.Position - corpo.Position).Unit * distancia
 	local origin = Vector3.new(corpo.Position.X, corpo.Position.Y, corpo.Position.Z)
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = {carro.Parent.Corpo}
+	params.FilterDescendantsInstances = {corpo}
 
 	local vacuo = workspace:Raycast(origin, diretion, params)
 
@@ -176,6 +181,7 @@ end
 
 -- [STANDALONE] removidas module.InLimits (limite de pista contra workspace.Pista)
 -- e module.ListOrg (lista de classificação da corrida). Só eram usadas pelo
--- sistema de corrida; as funções de física acima estão idênticas ao original.
+-- sistema de corrida. As funções de física acima são as originais; Direcao e vacuo
+-- só ganharam verificações [CHASSI] para o carro sem volante e sem carroceria.
 
 return module

@@ -276,16 +276,20 @@ msom.__src = fs.readFile(MODSOM)
 -- car
 local model = new("Model", "Carro", workspace)
 local chassi = new("Part", "Chassi", model, { AssemblyLinearVelocity = Vector3.new(0, 0, 0) })
-local corpo = new("MeshPart", "Corpo", model, { Position = Vector3.new(0, 1, 0) })
-new("Part", "Vacuo", corpo)
-local drs = new("MeshPart", "DRS", corpo)
-local drsServo = new("HingeConstraint", "HingeConstraint", drs, { TargetAngle = 0 })
-local maos = new("Model", "Maos", model)
-local m1 = new("MeshPart", "M1", maos, { Transparency = 0 })
-new("MeshPart", "LeftLowerArm", m1, { Transparency = 0 })
-new("MeshPart", "LeftUpperArm", m1, { Transparency = 0 })
-local m2 = new("MeshPart", "M2", maos, { Transparency = 0 })
-new("MeshPart", "RightLowerArm", m2, { Transparency = 0 })
+local CHASSI = VARIANT == "chassi"
+local drsServo
+if not CHASSI then
+	local corpo = new("MeshPart", "Corpo", model, { Position = Vector3.new(0, 1, 0) })
+	new("Part", "Vacuo", corpo)
+	local drs = new("MeshPart", "DRS", corpo)
+	drsServo = new("HingeConstraint", "HingeConstraint", drs, { TargetAngle = 0 })
+	local maos = new("Model", "Maos", model)
+	local m1 = new("MeshPart", "M1", maos, { Transparency = 0 })
+	new("MeshPart", "LeftLowerArm", m1, { Transparency = 0 })
+	new("MeshPart", "LeftUpperArm", m1, { Transparency = 0 })
+	local m2 = new("MeshPart", "M2", maos, { Transparency = 0 })
+	new("MeshPart", "RightLowerArm", m2, { Transparency = 0 })
+end
 if VARIANT == "orig" then
 	new("ObjectValue", "AreaPit", model, { Value = nil })
 end
@@ -304,8 +308,11 @@ local function cyl(n) return new("CylindricalConstraint", n, chassi, { MotorMaxT
 local MotorD, MotorE, MotorDD, MotorDE = cyl("MotorTD"), cyl("MotorTE"), cyl("MotorFD"), cyl("MotorFE")
 local DirD = new("HingeConstraint", "direcaoD", chassi, { TargetAngle = 0, CurrentAngle = 0 })
 local DirE = new("HingeConstraint", "direcaoE", chassi, { TargetAngle = 0, CurrentAngle = 0 })
-local volante = new("MeshPart", "Volante", chassi)
-local VolS = new("HingeConstraint", "Servo", volante, { TargetAngle = 0 })
+local VolS
+if not CHASSI then
+	local volante = new("MeshPart", "Volante", chassi)
+	VolS = new("HingeConstraint", "Servo", volante, { TargetAngle = 0 })
+end
 local DownForce = new("VectorForce", "DownForce", chassi, { Force = Vector3.new(0, 0, 0) })
 local som = new("Sound", "MotorSound", chassi, { PlaybackSpeed = 0, Volume = 0.5, Playing = true })
 

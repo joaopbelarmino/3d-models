@@ -85,10 +85,14 @@ local cfg = new("Configuration", "Config", model)
 for k, v in pairs({ AplicarTuning = true, MolalturaF = 1.5, MolalturaT = 1.5, RigidezF = 25000, RigidezT = 25000, CamberF = 90, CamberT = 90, Sensibilidade = 1.5, TC = 1 }) do cfg.__a[k] = v end
 local ch = new("Part", "Chassi", model, { AssemblyLinearVelocity = Vector3.zero, AssemblyAngularVelocity = Vector3.zero, Orientation = V3(0, 0, 0) })
 for _, k in ipairs({ "AsaBroken", "EixoFdBroken", "EixoFeBroken", "Inpit" }) do ch.__a[k] = false end
-local corpo = new("MeshPart", "Corpo", model, { Transparency = 0, CanCollide = true })
-local asa = new("MeshPart", "AsaFrontal", corpo, { Transparency = (process.args[3] == "sempneu") and 0.7 or 0, CanCollide = true })
-new("CylindricalConstraint", "Quebrar", asa, { CurrentAngle = 0, Enabled = true })
-new("HingeConstraint", "HingeConstraint", new("MeshPart", "DRS", corpo))
+local SEMCORPO = process.args[3] == "semcorpo"
+local asa
+if not SEMCORPO then
+	local corpo = new("MeshPart", "Corpo", model, { Transparency = 0, CanCollide = true })
+	asa = new("MeshPart", "AsaFrontal", corpo, { Transparency = (process.args[3] == "sempneu") and 0.7 or 0, CanCollide = true })
+	new("CylindricalConstraint", "Quebrar", asa, { CurrentAngle = 0, Enabled = true })
+	new("HingeConstraint", "HingeConstraint", new("MeshPart", "DRS", corpo))
+end
 new("ObjectValue", "Player", ch, { Value = nil })
 local cpp = function(f) return PhysicalProperties.new(0.7, f, 0.3, 0.5, 0) end
 local function axle(name, wheels, motors, steer)
@@ -96,7 +100,7 @@ local function axle(name, wheels, motors, steer)
 	for _, m in ipairs(motors) do new("CylindricalConstraint", m, e, { InclinationAngle = 90 }) end
 	for _, w in ipairs(wheels) do
 		local r = new("Part", w[1], e, { CustomPhysicalProperties = cpp(w[3]) })
-		if process.args[3] ~= "sempneu" then new("MeshPart", "Pneu", r, { TextureID = "" }) end
+		if process.args[3] ~= "sempneu" and not SEMCORPO then new("MeshPart", "Pneu", r, { TextureID = "" }) end
 		new("SpringConstraint", w[2], r, { FreeLength = 1.59, Stiffness = 24862 })
 	end
 	if steer then new("HingeConstraint", "direcao", e, { CurrentAngle = 0, AngularSpeed = 1.5, ActuatorType = Enum.ActuatorType.Servo }) end
@@ -108,7 +112,7 @@ new("Sound", "MotorSound", ch)
 new("VectorForce", "DownForce", ch)
 new("AlignOrientation", "Destombar", ch, { Enabled = false })
 local seat = new("VehicleSeat", "SeatM", ch, { Occupant = nil })
-new("HingeConstraint", "Servo", new("MeshPart", "Volante", ch))
+if not SEMCORPO then new("HingeConstraint", "Servo", new("MeshPart", "Volante", ch)) end
 for _, n in ipairs({ "RAYFD", "RAYFE", "RAYTD", "RAYTE", "Cam1", "Cam2", "Cam3", "Cam4" }) do new("Part", n, ch) end
 
 local function env(script)
@@ -135,7 +139,7 @@ new("Humanoid", "Humanoid", charm, { Sit = true })
 seat.Occupant = charm.Humanoid
 RunService.Heartbeat:Fire(1 / 60)
 -- crash: wing breaks, then front-right axle
-asa.Quebrar.__p.CurrentAngle = 20
+if asa then asa.Quebrar.__p.CurrentAngle = 20 end
 RunService.Heartbeat:Fire(1 / 60)
 ch.EixoFD.direcao.__p.CurrentAngle = 40
 RunService.Heartbeat:Fire(1 / 60)
