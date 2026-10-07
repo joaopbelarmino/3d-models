@@ -120,6 +120,7 @@ fn main() {
             let refs = dom.root().children().to_vec();
             save(&dom, &refs, &a[3]);
         }
+        "chassis" => chassis(&a[2], &a[3], &a[4]),
         "place" => place_into(&a[2], &a[3], &a[4], &a[5]),
         "build" => build(&a[2], &a[3], &a[4], &a[5]),
         _ => panic!("unknown cmd"),
@@ -574,6 +575,181 @@ fn place_into(map: &str, pkg_path: &str, italy: &str, out: &str) {
     let nf = ((pa2.x - pc2.x), (pa2.z - pc2.z));
     let nl = (nf.0 * nf.0 + nf.1 * nf.1).sqrt();
     println!("race dir {:?}; car forward after = ({:.4},{:.4}); grid1 {:?}; car pivot -> {:?}", fwd, nf.0 / nl, nf.1 / nl, p1, target_pos);
+
+    let top = dom.root().children().to_vec();
+    save(&dom, &top, out);
+}
+
+// ---------------------------------------------------------------------------
+// chassis: add a chassis-only copy of the car next to the full one
+// ---------------------------------------------------------------------------
+use rbx_dom_weak::types::{BrickColor, Color3uint8};
+
+fn rel_path(dom: &WeakDom, root: Ref, r: Ref) -> String {
+    let mut names = vec![];
+    let mut cur = r;
+    while cur != root {
+        let i = dom.get_by_ref(cur).unwrap();
+        names.push(i.name.clone());
+        cur = i.parent();
+    }
+    names.reverse();
+    names.join("/")
+}
+
+fn set_attr(dom: &mut WeakDom, r: Ref, k: &str, v: Variant) {
+    let inst = dom.get_by_ref_mut(r).unwrap();
+    let mut a = match inst.properties.remove(&"Attributes".into()) { Some(Variant::Attributes(a)) => a, _ => Attributes::new() };
+    a.insert(k.to_string(), v);
+    inst.properties.insert("Attributes".into(), Variant::Attributes(a));
+}
+
+fn chassis(input: &str, srcdir: &str, out: &str) {
+    let mut dom = load(input);
+    let ws = find(&dom, "Workspace");
+    let full = find(&dom, "Workspace/Carro");
+    let car = dom.clone_within(full);
+    dom.transfer_within(car, ws);
+    // fresh ids for the copy
+    let refs: Vec<Ref> = dom.descendants_of(car).map(|i| i.referent()).collect();
+    for r in &refs { dom.get_by_ref_mut(*r).unwrap().properties.remove(&"UniqueId".into()); }
+    dom.get_by_ref_mut(car).unwrap().name = "Carro_Chassi".to_string();
+    let p = |dom: &WeakDom, rel: &str| -> Ref {
+        let mut cur = car;
+        for part in rel.split('/') { cur = child(dom, cur, part).unwrap_or_else(|| panic!("missing {rel}")); }
+        cur
+    };
+
+    // ---------------- 1. remove purely visual pieces ----------------
+    let remove = [
+        "Corpo/EixoFrontal", "Corpo/EixoTraseiro", "Corpo/Escapamento",
+        "Chassi/EixoFD/RodaFD/Pneu", "Chassi/EixoFE/RodaFE/Pneu", "Chassi/EixoT/RodaTD/Pneu", "Chassi/EixoT/RodaTE/Pneu",
+        "Highlight", "Chassi/Volante/SurfaceGui",
+    ];
+    for rel in remove {
+        let r = p(&dom, rel);
+        // safety: any BasePart removed must be massless, non-colliding, and welded (never an assembly root here)
+        for d in dom.descendants_of(r) {
+            if BASEPART.contains(&d.class.as_str()) {
+                assert!(matches!(d.properties.get(&"Massless".into()), Some(Variant::Bool(true))), "{} not massless", d.name);
+                assert!(matches!(d.properties.get(&"CanCollide".into()), Some(Variant::Bool(false))), "{} collides", d.name);
+            }
+        }
+        dom.destroy(r);
+    }
+
+    // ---------------- 2. server script for this copy ----------------
+    let sc = p(&dom, "Chassi/ScriptCar");
+    set_prop(&mut dom, sc, "Source", Variant::String(read_src(&format!("{srcdir}/ScriptCar_Chassi.server.lua"))));
+
+    // ---------------- 3. clearer names for welds and attachments ----------------
+    // (scripts never address welds or attachments by name; constraints reference them by Ref)
+    let all: Vec<Ref> = dom.descendants_of(car).map(|i| i.referent()).collect();
+    let mut users: HashMap<Ref, Vec<String>> = HashMap::new();
+    for r in &all {
+        let i = dom.get_by_ref(*r).unwrap();
+        for key in ["Attachment0", "Attachment1"] {
+            if let Some(Variant::Ref(a)) = i.properties.get(&key.into()) {
+                if a.is_some() {
+                    let parent = dom.get_by_ref(i.parent()).unwrap().name.clone();
+                    users.entry(*a).or_default().push(format!("{}@{}", i.name, parent));
+                }
+            }
+        }
+    }
+    let mut renamed = 0;
+    for r in &all {
+        let (class, old) = { let i = dom.get_by_ref(*r).unwrap(); (i.class.to_string(), i.name.clone()) };
+        let new_name = if class == "WeldConstraint" {
+            let i = dom.get_by_ref(*r).unwrap();
+            let n = |k: &str| match i.properties.get(&k.into()) { Some(Variant::Ref(x)) if x.is_some() => dom.get_by_ref(*x).unwrap().name.clone(), _ => "?".into() };
+            Some(format!("Solda_{}_{}", n("Part0"), n("Part1")))
+        } else if class == "Attachment" {
+            users.get(r).map(|u| format!("Att_{}", u.join("+")))
+        } else { None };
+        if let Some(nn) = new_name {
+            if nn != old {
+                set_attr(&mut dom, *r, "NomeOriginal", Variant::String(old));
+                dom.get_by_ref_mut(*r).unwrap().name = nn;
+                renamed += 1;
+            }
+        }
+    }
+    println!("renamed {renamed} welds/attachments");
+
+    // ---------------- 4. colours by category (visual only: Color, Transparency, texture, constraint Visible/Color) ----------------
+    let cats: [(&str, (u8, u8, u8)); 7] = [
+        ("Chassi", (225, 225, 225)),
+        ("Suporte", (255, 140, 0)),
+        ("Suspensao", (255, 220, 0)),
+        ("Direcao", (0, 110, 255)),
+        ("Roda", (210, 30, 30)),
+        ("Camera", (255, 0, 200)),
+        ("OutraFisica", (0, 190, 90)),
+    ];
+    let color_of = |c: &str| cats.iter().find(|(n, _)| *n == c).unwrap().1;
+    // (path, category, transparency)
+    let parts: Vec<(&str, &str, f32)> = vec![
+        ("Chassi", "Chassi", 0.0), ("Chassi/SeatM", "Chassi", 0.0),
+        ("Chassi/EixoT", "Suporte", 0.0), ("Chassi/EixoFD", "Suporte", 0.0), ("Chassi/EixoFE", "Suporte", 0.0),
+        ("Chassi/Volante", "Direcao", 0.0),
+        ("Maos/M1", "Direcao", 0.0), ("Maos/M1/LeftLowerArm", "Direcao", 0.0), ("Maos/M1/LeftUpperArm", "Direcao", 0.0),
+        ("Maos/M2", "Direcao", 0.0), ("Maos/M2/RightLowerArm", "Direcao", 0.0), ("Maos/M2/RightUpperArm", "Direcao", 0.0),
+        ("Chassi/EixoFD/RodaFD", "Roda", 0.0), ("Chassi/EixoFE/RodaFE", "Roda", 0.0),
+        ("Chassi/EixoT/RodaTD", "Roda", 0.0), ("Chassi/EixoT/RodaTE", "Roda", 0.0),
+        ("Chassi/Cam1", "Camera", 0.3), ("Chassi/Cam2", "Camera", 0.3), ("Chassi/Cam3", "Camera", 0.3),
+        ("Chassi/Cam4", "Camera", 0.3), ("Chassi/CamR", "Camera", 0.3),
+        ("Chassi/RAYFD", "OutraFisica", 0.0), ("Chassi/RAYFE", "OutraFisica", 0.0), ("Chassi/RAYTD", "OutraFisica", 0.0),
+        ("Chassi/RAYTE", "OutraFisica", 0.0), ("Chassi/RAYVACUO", "OutraFisica", 0.0),
+        ("Corpo/DRS", "OutraFisica", 0.0),
+        // colliders / aero masses kept for identical physics, shown translucent
+        ("Corpo", "OutraFisica", 0.8), ("Corpo/AsaFrontal", "OutraFisica", 0.7), ("Corpo/AsaCopia", "OutraFisica", 0.9),
+        ("Corpo/aerofolio", "OutraFisica", 0.7), ("Corpo/Vacuo", "OutraFisica", 0.9),
+    ];
+    for (rel, cat, tr) in &parts {
+        let r = p(&dom, rel);
+        let (cr, cg, cb) = color_of(cat);
+        set_prop(&mut dom, r, "Color", Variant::Color3uint8(Color3uint8::new(cr, cg, cb)));
+        set_prop(&mut dom, r, "Transparency", Variant::Float32(*tr));
+        if dom.get_by_ref(r).unwrap().class == "MeshPart" {
+            set_prop(&mut dom, r, "TextureContent", Variant::Content(Content::none()));
+        }
+        set_attr(&mut dom, r, "Categoria", Variant::String(cat.to_string()));
+    }
+    // every BasePart of the copy must have a category
+    for d in dom.descendants_of(car) {
+        if BASEPART.contains(&d.class.as_str()) {
+            let path = rel_path(&dom, car, d.referent());
+            assert!(parts.iter().any(|(rel, _, _)| *rel == path), "uncategorised part {path}");
+        }
+    }
+    // springs (suspension) and steering hinges drawn in the world
+    let constraints: Vec<(Ref, String)> = dom.descendants_of(car).filter(|i| i.class == "SpringConstraint" || i.class == "HingeConstraint")
+        .map(|i| (i.referent(), i.name.clone())).collect();
+    for (r, name) in constraints {
+        let class = dom.get_by_ref(r).unwrap().class.to_string();
+        if class == "SpringConstraint" {
+            set_prop(&mut dom, r, "Visible", Variant::Bool(true));
+            set_prop(&mut dom, r, "Color", Variant::BrickColor(BrickColor::NewYeller));
+        } else if name == "direcao" {
+            set_prop(&mut dom, r, "Visible", Variant::Bool(true));
+            set_prop(&mut dom, r, "Color", Variant::BrickColor(BrickColor::BrightBlue));
+        }
+    }
+    // colour legend
+    let mut legend = Attributes::new();
+    for (n, (cr, cg, cb)) in cats.iter() {
+        legend.insert(n.to_string(), Variant::Color3(rbx_dom_weak::types::Color3::new(*cr as f32 / 255.0, *cg as f32 / 255.0, *cb as f32 / 255.0)));
+    }
+    dom.insert(car, InstanceBuilder::new("Configuration").with_name("LegendaCores").with_property("Attributes", legend));
+
+    // ---------------- 5. place it on grid slot 2 (pure translation, same orientation) ----------------
+    let g1 = find(&dom, "Workspace/Spa/Pista/Grid/GridPos01");
+    let g2 = find(&dom, "Workspace/Spa/Pista/Grid/GridPos02");
+    let (a, b) = (cframe_of(&dom, g1), cframe_of(&dom, g2));
+    let d = Vector3::new(b.position.x - a.position.x, b.position.y - a.position.y, b.position.z - a.position.z);
+    translate_tree(&mut dom, car, d);
+    println!("chassis car translated by {:?}", d);
 
     let top = dom.root().children().to_vec();
     save(&dom, &top, out);

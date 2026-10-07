@@ -9,6 +9,7 @@ os attachments, as câmeras e o HUD de pilotagem continuam os do original.
 |---|---|
 | `F1_Carro_Standalone_Teste.rbxl` | Mapa de teste pronto. Abra no Studio, aperte **Play** e sente no carro. |
 | `Spa_F1_Teste.rbxl` | Spa-Francorchamps com o carro instalado, no grid (posição 1). Abra e aperte **Play**. |
+| `Spa_F1_Teste_Chassi.rbxl` | O mesmo mapa com dois carros lado a lado: o completo (posição 1) e a cópia só com o chassi funcional, colorida por função (posição 2). |
 | `F1_Carro_Standalone.rbxm` | Pacote com tudo que o carro precisa. Arraste para o Studio e distribua as pastas (tabela abaixo). |
 | `src/` | Os scripts em texto, para ler e comparar. |
 | `tools/` | Ferramentas usadas na extração e na validação (ver "Como foi validado"). |
@@ -69,6 +70,77 @@ bem mais solto. **Use esses mesmos valores nas peças da pista nova.** No mapa d
   ligado; com ele, peças do carro podem não ter chegado ao cliente quando o servidor envia os dados
   no `Join`.
 * **`workspace.ChuvaType = "SUN"`**, como no jogo original.
+
+## Carro completo × só chassi (`Spa_F1_Teste_Chassi.rbxl`)
+
+O arquivo é o `Spa_F1_Teste.rbxl` com um segundo carro, `Workspace.Carro_Chassi`, na posição 2 do
+grid. A pista, o `Workspace.Carro` (completo) e todos os serviços estão idênticos ao arquivo anterior.
+Os dois carros usam o mesmo script de cliente, então dá para sair de um e entrar no outro.
+
+### O que saiu do chassi, e por que isso não muda a física
+| removido | motivo |
+|---|---|
+| `Corpo/EixoFrontal`, `Corpo/EixoTraseiro`, `Corpo/Escapamento` | malhas soldadas ao chassi, `Massless`, sem colisão e sem raycast (`CanQuery = false`) |
+| `Pneu` e `Aro` das 4 rodas | malhas soldadas à roda física (`RodaXX`), `Massless`, sem colisão; a roda física é a raiz da montagem e mantém toda a massa |
+| `Highlight` e `Volante/SurfaceGui` | só desenho |
+
+Peças que **parecem visuais mas ficaram**, porque mudariam a física:
+* `Corpo`, `AsaFrontal` e `aerofolio` **colidem** (`CanCollide = true`). Sem eles o carro passaria por
+  muros e zebras de outro jeito e a asa não quebraria. Ficaram como colisores translúcidos.
+* `AsaFrontal`, `AsaCopia`, a aba do `DRS` e o conjunto `Volante` + `Maos` estão marcados como
+  `Massless`, mas **têm massa**. Cada um é a raiz da própria montagem, presa ao carro por constraint
+  (e não por solda), e o Roblox ignora `Massless` na raiz. Pelo mesmo motivo, `EixoFD` e `EixoFE`
+  também têm massa.
+* `Corpo/Vacuo` é a placa que o vácuo de outro carro detecta.
+
+A física não muda porque toda peça removida tinha `Massless = true`, estava soldada a uma montagem cuja
+raiz é outra peça com massa (`Chassi` ou `RodaXX`) e tinha `CanCollide = false`. Também conferi que o
+raio do vácuo do próprio carro não passa por nenhuma delas.
+
+Uma ressalva honesta: pneu e aro tinham `CanQuery = true`. Se **outro** carro estiver logo atrás do
+carro-chassi, desalinhado, o raio do vácuo dele pode passar pela casca fina entre o cilindro da roda
+e o pneu 3D, que não existe mais. Isso só afeta o vácuo de quem vem atrás, nunca a pilotagem do
+próprio carro-chassi.
+
+### Script
+`Chassi/ScriptCar` do carro-chassi é o mesmo do completo, com 2 mudanças visuais marcadas `[CHASSI]`.
+A troca de textura do composto só acontece se o `Pneu` existir (o atrito por clima continua igual). Ao
+reparar, a asa volta à transparência de colisor em vez de 0. O script do cliente e os módulos não
+mudaram.
+
+### Cores (só `Color`, `Transparency` e textura; material e física intactos)
+| categoria (atributo `Categoria`) | cor | peças |
+|---|---|---|
+| Chassi | cinza claro | `Chassi`, `SeatM` |
+| Suporte | laranja | `EixoT` (suporte traseiro), `EixoFD`/`EixoFE` (mangas dianteiras) |
+| Suspensao | amarelo | as 4 molas (`SpringConstraint`/`Mola`), desenhadas com `Visible = true` |
+| Direcao | azul | `Volante`, `Maos` e as dobradiças `direcao` (desenhadas) |
+| Roda | vermelho | `RodaFD`, `RodaFE`, `RodaTD`, `RodaTE` (as rodas físicas, cilindros) |
+| Camera | magenta (translúcido) | `Cam1`–`Cam4`, `CamR` |
+| OutraFisica | verde | `RAY*` (pontos de referência), aba do `DRS`; translúcidos: `Corpo`, `AsaFrontal`, `AsaCopia`, `aerofolio`, `Vacuo` |
+
+As cores também estão em `Carro_Chassi.LegendaCores`, como atributos.
+
+### Organização
+Nada que os scripts usam mudou de nome ou de lugar (`EixoFD`, `RodaFD`, `MotorD`, `direcao`, `Mola`,
+`SpringConstraint`, `Cam1`… continuam iguais). Para facilitar a leitura, foram renomeadas só as peças
+que nenhum script procura pelo nome:
+* **Soldas**: `Solda_<Peça0>_<Peça1>`, por exemplo `Solda_Corpo_Chassi` ou `Solda_EixoT_Chassi`.
+* **Attachments**: `Att_<constraint>@<onde a constraint está>`, por exemplo `Att_MotorD@EixoT+Mola@RodaTD`
+  (usado pelo motor traseiro direito e pela mola traseira direita).
+
+O nome antigo ficou guardado no atributo `NomeOriginal`. Constraints apontam para attachments e soldas
+apontam para peças por referência, não por nome, então nenhuma ligação mudou.
+
+### Verificação
+* Todas as propriedades de todas as instâncias do `Carro_Chassi` foram comparadas com as do `Carro`. Só
+  diferem: cor, transparência, textura, `Visible`/cor das constraints desenhadas, nomes, atributos,
+  `UniqueId` e a mesma translação em todas as peças (o carro foi para a posição 2 do grid sem girar).
+  Massa, densidade, tamanho, `CustomPhysicalProperties`, `Stiffness`, `Damping`, `FreeLength`, limites,
+  torques, attachments, soldas e constraints estão iguais, apontando para as mesmas peças.
+* O script do servidor do carro-chassi foi testado sem os pneus, num mundo simulado vazio. Comparado
+  com o do carro completo, as únicas diferenças são as escritas de textura do pneu e a transparência
+  da asa ao reparar.
 
 ## Controles (os mesmos do jogo)
 
