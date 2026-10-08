@@ -109,3 +109,21 @@ dos dois lados.
 | ainda menos pulo | `Damping` das 4 molas (até ~350) |
 | arrancada mais parecida com a original | densidade das rodas para 0,3–0,35, e o lastro correspondente para menos (a massa do lastro é a diferença de massa da roda; o atributo `Massa` de cada lastro mostra o valor atual) |
 | altura | `Carro_V2.Config.MolalturaF` / `MolalturaT` |
+
+## Resultado no Studio (1ª rodada do V2)
+
+O Output colado está em `diagnostico/studio_lab_v2_run1.txt`. Começa no meio do pulo #1, mas
+nenhum evento aconteceu antes do trecho 4.
+
+| trecho | original (1ª rodada) | V2 |
+|---|---|---|
+| 2 e 3, rampas suaves a 145–180 | **3 pulos**, 44–83 ms no ar, folga até 0,58 | **nenhum pulo** |
+| 4, crista seca 2,8° | 206 studs/s: 28 ms no ar, folga 0,39 | 211–221: ~28 ms no ar, folga 0,30 (física da crista) |
+| 5, quinas | sem pulo | sem pulo; as 4 rodas sempre no chão |
+| 6, poucos triângulos | sem pulo | sem pulo, a 257–261 |
+| 7, muitos triângulos | 247 studs/s: **105–119 ms** no ar, folga 0,45–0,60, rolagem ±3,4 rad/s, direção mexendo ±6° | 259–264 studs/s (mais rápido): **~22 ms**, folga 0,26, rolagem ±1,8, direção ±0,5° |
+| fim do laboratório | pulo #7 a 251 | rodas saltitando sozinhas a 272–276 (a "tremidinha"), sem as 4 no ar |
+| fora da pista | caiu (#8) | caiu (#3): o laboratório acaba, não é pulo |
+
+A altura de rodagem andando ficou igual à do original: frente −0,09 a −0,13 e traseira −0,02 a
+−0,05. A compensação de `MolalturaF/T` funcionou.

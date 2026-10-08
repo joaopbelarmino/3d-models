@@ -3,7 +3,7 @@ ev=[];cur=None;hdr=None
 for line in open(sys.argv[1] if len(sys.argv)>1 else 'diagnostico/studio_lab_run1.txt'):
     m=re.search(r'##### PULO #(\d+)\s+trecho=(.*?)\s+vel=(\d+).*?t=([\d.]+) \(ΔVy=([\d.]+)',line)
     if m: cur={'n':int(m[1]),'tr':m[2][:30],'v':m[3],'t0':float(m[4]),'dvy':m[5],'rows':[]}; ev.append(cur); continue
-    if 'TEL,t,' in line: hdr=line.split('TEL,')[1].split('  -')[0].strip().split(','); continue
+    if "TEL,t," in line: hdr=line.split('TEL,')[1].split('  -')[0].strip().split(','); continue
     if 'TEL,' in line and cur:
         body=line.split('TEL,')[1].split('  -  Cliente')[0].strip()
         mm=re.search(r' \(x(\d+)\)$',body); rep=int(mm[1]) if mm else 1
