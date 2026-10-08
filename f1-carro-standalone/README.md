@@ -13,6 +13,7 @@ os attachments, as câmeras e o HUD de pilotagem continuam os do original.
 | `Laboratorio_Pulo.rbxl` | Laboratório de diagnóstico do "pulo": pista de testes controlados + telemetria quadro a quadro. Ver [`diagnostico/DIAGNOSTICO_PULO.md`](diagnostico/DIAGNOSTICO_PULO.md). |
 | `Laboratorio_Pulo_V2.rbxl` | Laboratório com o `Carro` original e o `Carro_V2` (chassi anti-pulo) lado a lado. Ver [`diagnostico/CHASSI_V2.md`](diagnostico/CHASSI_V2.md). |
 | `Spa_F1_Teste_V2.rbxl` | Spa com o `Carro` (posição 1) e o `Carro_V2` (posição 2). |
+| `SPA_EM_GAME_V2.rbxl` | O seu `SPA_EM_GAME.rbxl` com o `Carro_V2` na posição 3 do grid (o resto do mapa idêntico). |
 | `Carro_V2.rbxm` | Só o modelo `Carro_V2`, para um mapa que já tenha o pacote standalone. |
 | `F1_Carro_Standalone.rbxm` | Pacote com tudo que o carro precisa. Arraste para o Studio e distribua as pastas (tabela abaixo). |
 | `src/` | Os scripts em texto, para ler e comparar. |

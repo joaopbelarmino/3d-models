@@ -951,7 +951,13 @@ fn v2(input: &str, out: &str, mode: &str, model_out: Option<&str>) {
             let (a, b) = (cframe_of(&dom, find(&dom, "Workspace/Spa/Pista/Grid/GridPos01")), cframe_of(&dom, find(&dom, "Workspace/Spa/Pista/Grid/GridPos02")));
             Vector3::new(b.position.x - a.position.x, b.position.y - a.position.y, b.position.z - a.position.z)
         }
-        _ => panic!("mode lab|spa"),
+        m if m.starts_with("grid:") => {
+            // grid:<pasta do grid>:<N>  -> mesma posição relativa que o Carro tem no GridPos01
+            let parts: Vec<&str> = m.splitn(3, ':').collect();
+            let (a, b) = (cframe_of(&dom, find(&dom, &format!("{}/GridPos01", parts[1]))), cframe_of(&dom, find(&dom, &format!("{}/GridPos{:0>2}", parts[1], parts[2]))));
+            Vector3::new(b.position.x - a.position.x, b.position.y - a.position.y, b.position.z - a.position.z)
+        }
+        _ => panic!("mode lab|spa|grid:<pasta>:<N>"),
     };
     translate_tree(&mut dom, car, d);
     log.push(format!("translação {:?}", d));
