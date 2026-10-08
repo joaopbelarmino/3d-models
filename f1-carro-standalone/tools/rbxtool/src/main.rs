@@ -120,6 +120,8 @@ fn main() {
             let refs = dom.root().children().to_vec();
             save(&dom, &refs, &a[3]);
         }
+        "addscripts" => addscripts(&a),
+        "blob" => blob(&a[2], &a[3], &a[4], &a[5]),
         "chassis" => chassis(&a[2], &a[3], &a[4]),
         "place" => place_into(&a[2], &a[3], &a[4], &a[5]),
         "build" => build(&a[2], &a[3], &a[4], &a[5]),
@@ -779,4 +781,31 @@ fn chassis(input: &str, srcdir: &str, out: &str) {
 
     let top = dom.root().children().to_vec();
     save(&dom, &top, out);
+}
+
+// blob: write a SharedString/BinaryString property to a file
+fn blob(input: &str, path: &str, prop: &str, out: &str) {
+    let dom = load(input);
+    let r = find(&dom, path);
+    match dom.get_by_ref(r).unwrap().properties.get(&prop.into()) {
+        Some(Variant::SharedString(s)) => fs::write(out, s.data()).unwrap(),
+        Some(Variant::BinaryString(b)) => fs::write(out, AsRef::<[u8]>::as_ref(b)).unwrap(),
+        other => panic!("not a blob: {:?}", other.map(|v| v.ty())),
+    }
+}
+
+// addscripts: <in> <out> then triples <TemplatePath> <DestParentPath> <Name> <SourceFile> ...
+fn addscripts(a: &[String]) {
+    let mut dom = load(&a[2]);
+    let mut i = 4;
+    while i + 3 < a.len() + 1 && i + 3 <= a.len() - 1 + 1 {
+        if i + 3 > a.len() { break; }
+        let tpl = find(&dom, &a[i]);
+        let dest = find(&dom, &a[i + 1]);
+        let c = clone_to(&mut dom, tpl, dest, &a[i + 2]);
+        set_prop(&mut dom, c, "Source", Variant::String(read_src(&a[i + 3])));
+        i += 4;
+    }
+    let top = dom.root().children().to_vec();
+    save(&dom, &top, &a[3]);
 }

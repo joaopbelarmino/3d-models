@@ -10,6 +10,7 @@ os attachments, as câmeras e o HUD de pilotagem continuam os do original.
 | `F1_Carro_Standalone_Teste.rbxl` | Mapa de teste pronto. Abra no Studio, aperte **Play** e sente no carro. |
 | `Spa_F1_Teste.rbxl` | Spa-Francorchamps com o carro instalado, no grid (posição 1). Abra e aperte **Play**. |
 | `Spa_F1_Teste_Chassi.rbxl` | O mesmo mapa com dois carros: o completo (posição 1) e uma cópia sem nenhum modelo 3D, só chassi e Parts coloridas por função (posição 2). |
+| `Laboratorio_Pulo.rbxl` | Laboratório de diagnóstico do "pulo": pista de testes controlados + telemetria quadro a quadro. Ver [`diagnostico/DIAGNOSTICO_PULO.md`](diagnostico/DIAGNOSTICO_PULO.md). |
 | `F1_Carro_Standalone.rbxm` | Pacote com tudo que o carro precisa. Arraste para o Studio e distribua as pastas (tabela abaixo). |
 | `src/` | Os scripts em texto, para ler e comparar. |
 | `tools/` | Ferramentas usadas na extração e na validação (ver "Como foi validado"). |
