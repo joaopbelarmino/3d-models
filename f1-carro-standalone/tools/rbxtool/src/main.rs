@@ -779,6 +779,7 @@ fn chassis(input: &str, srcdir: &str, out: &str) {
     let d = Vector3::new(b.position.x - a.position.x, b.position.y - a.position.y, b.position.z - a.position.z);
     translate_tree(&mut dom, car, d);
     println!("chassis car translated by {:?}", d);
+    println!("soldas recalculadas: {}", refazer_soldas(&mut dom, car));
 
     let top = dom.root().children().to_vec();
     save(&dom, &top, out);
@@ -836,6 +837,26 @@ fn f32_prop(dom: &WeakDom, r: Ref, k: &str) -> f32 {
         Some(Variant::Float32(x)) => *x,
         other => panic!("{k}: {:?}", other),
     }
+}
+
+/// O Roblox respeita o CFrame0 salvo da WeldConstraint ao carregar (a peça é puxada para lá).
+/// Recalcula CFrame0 = Part0.CFrame^-1 * Part1.CFrame para todas as soldas dentro de `root`.
+fn refazer_soldas(dom: &mut WeakDom, root: Ref) -> usize {
+    let welds: Vec<Ref> = dom.descendants_of(root).filter(|i| i.class == "WeldConstraint").map(|i| i.referent()).collect();
+    let mut n = 0;
+    for w in welds {
+        let (p0, p1) = {
+            let i = dom.get_by_ref(w).unwrap();
+            let g = |k: &str| match i.properties.get(&k.into()) { Some(Variant::Ref(r)) if r.is_some() => Some(*r), _ => None };
+            (g("Part0"), g("Part1"))
+        };
+        if let (Some(a), Some(b)) = (p0, p1) {
+            let c0 = cf_mul(&cf_inv(&cframe_of(dom, a)), &cframe_of(dom, b));
+            set_prop(dom, w, "CFrame0", Variant::CFrame(c0));
+            n += 1;
+        }
+    }
+    n
 }
 
 fn v2(input: &str, out: &str, mode: &str, model_out: Option<&str>) {
@@ -944,8 +965,9 @@ fn v2(input: &str, out: &str, mode: &str, model_out: Option<&str>) {
     let d = match mode {
         "lab" => {
             let cf = cframe_of(&dom, chassi);
-            let x = cf.orientation.x; // lado do carro
-            Vector3::new(x.x * 12.0, 0.0, x.z * 12.0)
+            // lado do carro = coluna 0 da rotação (orientation.x/y/z são as LINHAS)
+            let (lx, lz) = (cf.orientation.x.x, cf.orientation.z.x);
+            Vector3::new(lx * 12.0, 0.0, lz * 12.0)
         }
         "spa" => {
             let (a, b) = (cframe_of(&dom, find(&dom, "Workspace/Spa/Pista/Grid/GridPos01")), cframe_of(&dom, find(&dom, "Workspace/Spa/Pista/Grid/GridPos02")));
@@ -961,6 +983,7 @@ fn v2(input: &str, out: &str, mode: &str, model_out: Option<&str>) {
     };
     translate_tree(&mut dom, car, d);
     log.push(format!("translação {:?}", d));
+    log.push(format!("soldas recalculadas: {}", refazer_soldas(&mut dom, car)));
     for l in &log { println!("{l}"); }
 
     if let Some(mo) = model_out {

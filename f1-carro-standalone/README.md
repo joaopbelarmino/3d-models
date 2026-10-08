@@ -14,6 +14,7 @@ os attachments, as câmeras e o HUD de pilotagem continuam os do original.
 | `Laboratorio_Pulo_V2.rbxl` | Laboratório com o `Carro` original e o `Carro_V2` (chassi anti-pulo) lado a lado. Ver [`diagnostico/CHASSI_V2.md`](diagnostico/CHASSI_V2.md). |
 | `Spa_F1_Teste_V2.rbxl` | Spa com o `Carro` (posição 1) e o `Carro_V2` (posição 2). |
 | `SPA_EM_GAME_V2.rbxl` | O seu `SPA_EM_GAME.rbxl` com o `Carro_V2` na posição 3 do grid (o resto do mapa idêntico). |
+| `game_spa_2026_Audi.rbxl` | Seu `game_spa_2026` com o **Carro 2026 (Audi)** funcionando: chassi V2 + malhas e texturas do Audi, na posição 3 do grid. Ver [`diagnostico/AUDI_2026.md`](diagnostico/AUDI_2026.md). |
 | `Carro_V2.rbxm` | Só o modelo `Carro_V2`, para um mapa que já tenha o pacote standalone. |
 | `F1_Carro_Standalone.rbxm` | Pacote com tudo que o carro precisa. Arraste para o Studio e distribua as pastas (tabela abaixo). |
 | `src/` | Os scripts em texto, para ler e comparar. |
