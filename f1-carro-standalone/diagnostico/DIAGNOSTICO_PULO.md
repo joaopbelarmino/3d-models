@@ -1,8 +1,13 @@
 # Diagnóstico: por que o carro dá um pulo em pequenas irregularidades
 
 **Nada da física do carro foi alterado.** Este documento diz o que foi medido, o que foi simulado e o
-que ainda precisa ser confirmado no Studio. O laboratório para essa confirmação está em
-`Laboratorio_Pulo.rbxl`.
+que o Studio confirmou. O laboratório está em `Laboratorio_Pulo.rbxl`.
+
+> **Atualização com o Studio (seção 8):** a suspensão **não** está travada, e a carroceria e a asa
+> nunca encostam no chão. O carro pula em rampas **suaves** a 145–180 studs/s, onde a física não
+> manda decolar. O mecanismo medido é: a roda leva um chute, a dianteira fica oscilando a ~10 Hz quase
+> sem amortecimento, e as rodas saem do chão uma de cada vez. As quinas minúsculas entre vértices não
+> fizeram o carro pular. A ordem das recomendações mudou: veja a seção 8.
 
 ## 1. Resposta curta
 
@@ -175,3 +180,86 @@ o carro consegue cair (g + downforce). O tempo no ar é ≈ 2·v·Δθ / (196 + 
 
 Para os testes 8 a 10 (velocidade, downforce e pedal), use as mesmas pistas. A telemetria registra a
 velocidade, a força de downforce e o ângulo de direção em cada linha.
+
+## 8. Resultados do Studio (`Laboratorio_Pulo.rbxl`, 1ª rodada)
+
+O Output completo está em `diagnostico/studio_lab_run1.txt`, e o resumo por evento sai de
+`python3 tools/diagnostico/studio_parse.py`. A telemetria foi registrada a cada ~5,5 ms.
+
+### 8.1 O que foi confirmado ou descartado
+
+| hipótese | resultado no Studio |
+|---|---|
+| Suspensão travada pelos limites invertidos | **Descartada.** `LowerLimit`/`UpperLimit` continuam invertidos, mas `CurrentPosition` vai de −0,57 a +0,17 andando. O motor trata os limites como batentes em ±0,5 |
+| Carroceria ou asa batendo no chão | **Descartada.** `assoalho = 0` e `asa = 0` em todos os quadros de todos os eventos |
+| Massas | **Confirmadas:** chassi 8,752; rodas 6,870 (frente) e 7,851 (trás); `AsaFrontal` e `AsaCopia` 1,5 cada; DRS 0,529; centro de massa em z = +0,049 |
+| Amortecimento | **Confirmado:** `Damping` 99,3 na frente e 198,6 atrás. Em repouso, a frente fica comprimida −0,12/−0,13 e a traseira −0,01/−0,03 |
+| Downforce | Funciona (−640 a −1340 conforme a velocidade). Não é a causa |
+
+### 8.2 Os 8 pulos
+
+| # | trecho | vel. | tempo sem nenhuma roda no chão | folga máx. de uma roda | compressão máx. | leitura |
+|---|---|---|---|---|---|---|
+| 1 | 2 subida suave 3° | 145 | 44 ms | 0,58 | −0,34 | **não deveria pular** |
+| 2 | 2 subida suave 3° | 157 | 83 ms | 0,57 | −0,39 | **não deveria pular** |
+| 3 | 3 descida suave 3° | 179 | 67 ms | 0,45 | −0,46 | **não deveria pular** |
+| 4 | 4 crista seca 2,8° | 206 | 28 ms | 0,39 | −0,36 | física: crista seca nessa velocidade decola |
+| 5 | 7 muitos triângulos ±0,3° | 247 | 105 ms | 0,45 | −0,54 (batente) | carro "dançando" |
+| 6 | 7 muitos triângulos ±0,3° | 247 | 119 ms | 0,60 | −0,54 (batente) | carro "dançando" |
+| 7 | fim do laboratório | 251 | 147 ms | — | −0,57 (batente) | saída da reta: ignorar |
+| 8 | fora da pista | 246 | 548 ms, Vy −110 | — | — | caiu do laboratório: ignorar |
+
+**Sem pulo:** quinas de 0,0016 / 0,0043 / 0,01 (trecho 5, a ~210) e triângulos de ±1° a cada 40 studs
+(trecho 6, a ~245).
+
+### 8.3 Por que os pulos #1–#3 provam que a causa é o carro
+
+As rampas dos trechos 2 e 3 têm transições em parábola, com raio de ~286 studs, feitas de facetas de
+2 studs com 0,4° entre elas. Numa curva assim, o carro só sairia do chão por física acima de
+≈ √(g·R) ≈ 235 studs/s. Ele saiu a 145.
+
+Na sequência do pulo #1, quadro a quadro:
+
+1. **t = 11,87:** a roda dianteira direita toca a primeira faceta e, em 1–2 quadros (5–10 ms), sai do chão
+   0,15–0,24 stud. A suspensão dela comprime de −0,13 para −0,31.
+2. **t = 11,98–12,00:** a traseira faz o mesmo, com folga de até 0,58. O chassi chega a **Vy = 15,8**, o
+   dobro dos 7,6 que a inclinação de 3° pede.
+3. **Depois:** a frente fica oscilando com período de ~0,1 s (Vy 12 → 6 → 10 → 2 → …). Isso é **~10 Hz, a
+   frequência natural calculada da dianteira (10,4 Hz) com razão de amortecimento de 0,13**. A
+   oscilação não morre entre uma faceta e outra.
+4. **Resultado:** o número de rodas no chão fica pulando entre 1 e 4 durante a rampa inteira.
+
+As rodas saem uma de cada vez. Isso gera **rolagem de ±1,5 a ±3 rad/s** e mexe a direção ±3–6°.
+
+**Correção do modelo (seção 5):** a compressão nos pulos #1–#4 ficou entre −0,30 e −0,46. O batente
+(−0,5) só foi atingido nos trechos de 247 studs/s. Ou seja, o batente não é o mecanismo principal. O
+mecanismo é:
+
+- **o chute na roda:** um impacto quase elástico de uma roda pesada (6,9–7,9) num cilindro rígido;
+- **e a dianteira subamortecida,** que não devolve a roda ao chão antes da próxima faceta.
+
+O motor real pulou **mais** do que o modelo previa (todas as passagens a 145–180, contra 25% no
+modelo). Isso aponta para um contato roda × pista mais "quicante" no Roblox. A elasticidade da roda é
+0,3, e a combinação com a pista (peso 0 × peso 0) é a suspeita.
+
+**Ressalva:** a superfície do laboratório usa cunhas finas (0,05). A rampa é bem mais suave do que o
+Spa, mas a mesma sequência (chute → oscilação de 10 Hz → rodas alternando) deve ser conferida também
+numa volta no Spa.
+
+### 8.4 Recomendações, revistas pelos dados (da menos para a mais invasiva)
+
+Nenhuma foi aplicada.
+
+1. **`Damping` dianteiro de ~100 para ~350.** Ataca diretamente a oscilação de 10 Hz que aparece em
+   todos os eventos. Não mexe na rigidez, na altura nem na aderência.
+2. **Elasticidade das 4 rodas de 0,3 para 0.** Tira o "quique" do contato. Não mexe no atrito, e
+   portanto não mexe na aderência.
+3. **Desinverter os limites** (`LowerLimit −0.4986`, `UpperLimit +0.4986`). O Studio mostrou que o
+   efeito esperado é nulo. Serve só para os valores ficarem coerentes com o que o motor faz.
+4. **Pista (Spa):** suavizar **sequências** de dobras pequenas, que são o gatilho medido. Soldar os
+   vértices ficou em segundo plano, porque as quinas de até 0,01 não fizeram o carro pular.
+5. **Limpezas:** dobradiça do DRS, alvo de direção 13° contra limite de 12°, `AsaCopia`.
+6. **Redistribuir a massa das rodas.** Mais invasiva, porque muda arrancada e controle de tração.
+
+Proposta de validação: repetir o mesmo roteiro do laboratório com (a) o original, (b) só o item 1,
+(c) só o item 2 e (d) os dois. Comparar o número de pulos, a folga máxima e a rolagem.
