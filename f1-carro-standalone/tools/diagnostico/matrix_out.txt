@@ -1,0 +1,77 @@
+== 1 piso plano
+   v= 50 downforce=sim: Vy_chassi    0.2  Vy_roda    0.4  subida  0.00  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    0.1  Vy_roda    0.4  subida  0.00  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.13,-0.01]  ok
+   v=150 downforce=sim: Vy_chassi    0.2  Vy_roda    0.4  subida  0.00  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  ok
+   v=150 downforce=não: Vy_chassi    0.1  Vy_roda    0.4  subida  0.00  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.13,-0.01]  ok
+   v=300 downforce=sim: Vy_chassi    0.4  Vy_roda    0.5  subida  0.00  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,-0.01]  saltita
+   v=300 downforce=não: Vy_chassi    0.5  Vy_roda    0.4  subida  0.00  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  ok
+== 2 subida suave 3° (rampa c/ transição 15)
+   v= 50 downforce=sim: Vy_chassi    0.8  Vy_roda    4.0  subida  0.08  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.15,+0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    1.5  Vy_roda    6.7  subida  0.10  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,+0.01]  saltita
+   v=150 downforce=sim: Vy_chassi    8.6  Vy_roda   22.1  subida  0.32  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.29,+0.03]  PULA
+   v=150 downforce=não: Vy_chassi    9.0  Vy_roda   21.9  subida  0.37  no_ar   50ms  assoalho  0  asa  0  batente  0  curso [-0.27,+0.03]  PULA
+   v=300 downforce=sim: Vy_chassi    4.8  Vy_roda    6.5  subida  0.06  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.29,+0.00]  saltita
+   v=300 downforce=não: Vy_chassi   18.4  Vy_roda   42.5  subida  0.58  no_ar   58ms  assoalho  0  asa  0  batente  1  curso [-0.52,+0.17]  PULA
+== 3 descida suave 3°
+   v= 50 downforce=sim: Vy_chassi    0.8  Vy_roda    5.4  subida  0.06  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,+0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    1.8  Vy_roda    7.1  subida  0.07  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.15,+0.01]  saltita
+   v=150 downforce=sim: Vy_chassi   10.9  Vy_roda   29.3  subida  0.22  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.38,+0.01]  saltita
+   v=150 downforce=não: Vy_chassi    7.1  Vy_roda   29.5  subida  0.26  no_ar   25ms  assoalho  0  asa  0  batente  0  curso [-0.21,+0.01]  saltita
+   v=300 downforce=sim: Vy_chassi    4.4  Vy_roda   14.3  subida  0.13  no_ar   46ms  assoalho  0  asa  0  batente  0  curso [-0.27,+0.00]  saltita
+   v=300 downforce=não: Vy_chassi    8.5  Vy_roda   23.7  subida  0.34  no_ar   79ms  assoalho  0  asa  0  batente  0  curso [-0.26,+0.01]  PULA
+== 4a mudança de inclinação: vale 2.8° (máx Spa)
+   v= 50 downforce=sim: Vy_chassi    3.2  Vy_roda    3.0  subida  0.16  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,-0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    3.2  Vy_roda    3.0  subida  0.16  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.16,-0.00]  saltita
+   v=150 downforce=sim: Vy_chassi    4.3  Vy_roda    8.6  subida  0.12  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.24,-0.01]  saltita
+   v=150 downforce=não: Vy_chassi    4.5  Vy_roda   16.3  subida  0.12  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.23,+0.02]  saltita
+   v=300 downforce=sim: Vy_chassi    4.5  Vy_roda   17.0  subida  0.09  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.35,-0.01]  saltita
+   v=300 downforce=não: Vy_chassi    4.5  Vy_roda   17.0  subida  0.08  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.32,+0.00]  saltita
+== 4b mudança de inclinação: crista 2.8°
+   v= 50 downforce=sim: Vy_chassi    1.7  Vy_roda    2.7  subida  0.01  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,+0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    2.7  Vy_roda   11.1  subida  0.06  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.15,+0.01]  saltita
+   v=150 downforce=sim: Vy_chassi    5.5  Vy_roda    7.6  subida  0.08  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.23,+0.00]  saltita
+   v=150 downforce=não: Vy_chassi   10.1  Vy_roda   25.5  subida  0.33  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.21,+0.01]  PULA
+   v=300 downforce=sim: Vy_chassi   13.4  Vy_roda   15.0  subida  0.39  no_ar   67ms  assoalho  0  asa  0  batente  0  curso [-0.36,+0.01]  PULA
+   v=300 downforce=não: Vy_chassi   13.6  Vy_roda   14.8  subida  0.51  no_ar   96ms  assoalho  0  asa  0  batente  0  curso [-0.33,+0.01]  PULA
+== 4c rampa seca 3° (sobe e volta)
+   v= 50 downforce=sim: Vy_chassi    3.5  Vy_roda    3.2  subida  0.17  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,+0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    3.5  Vy_roda    3.2  subida  0.17  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,+0.01]  saltita
+   v=150 downforce=sim: Vy_chassi    7.6  Vy_roda    9.2  subida  0.12  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.26,+0.01]  saltita
+   v=150 downforce=não: Vy_chassi    4.9  Vy_roda   16.3  subida  0.12  no_ar   29ms  assoalho  0  asa  0  batente  0  curso [-0.24,+0.02]  saltita
+   v=300 downforce=sim: Vy_chassi   11.7  Vy_roda   18.3  subida  0.27  no_ar   46ms  assoalho  0  asa  0  batente  0  curso [-0.36,+0.00]  saltita
+   v=300 downforce=não: Vy_chassi   11.4  Vy_roda   18.2  subida  0.33  no_ar   58ms  assoalho  0  asa  0  batente  0  curso [-0.33,+0.01]  PULA
+== 5a quina 0.0016 (p99 Spa)
+   v= 50 downforce=sim: Vy_chassi    0.2  Vy_roda    0.4  subida  0.00  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    1.6  Vy_roda    6.3  subida  0.02  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.13,+0.01]  saltita
+   v=150 downforce=sim: Vy_chassi    0.2  Vy_roda    0.4  subida  0.00  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  saltita
+   v=150 downforce=não: Vy_chassi    5.0  Vy_roda   19.0  subida  0.15  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,+0.01]  saltita
+   v=300 downforce=sim: Vy_chassi    0.4  Vy_roda    0.5  subida  0.00  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,-0.01]  saltita
+   v=300 downforce=não: Vy_chassi    0.5  Vy_roda    0.4  subida  0.00  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  ok
+== 5b quina 0.0043 (máx Spa)
+   v= 50 downforce=sim: Vy_chassi    0.2  Vy_roda    0.4  subida  0.01  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    1.5  Vy_roda    6.4  subida  0.02  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.13,+0.01]  saltita
+   v=150 downforce=sim: Vy_chassi    0.3  Vy_roda    0.4  subida  0.00  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  saltita
+   v=150 downforce=não: Vy_chassi    5.2  Vy_roda   19.1  subida  0.15  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,+0.01]  saltita
+   v=300 downforce=sim: Vy_chassi    0.4  Vy_roda    0.5  subida  0.00  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,-0.01]  saltita
+   v=300 downforce=não: Vy_chassi    0.5  Vy_roda    0.4  subida  0.00  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  ok
+== 5c quina 0.01
+   v= 50 downforce=sim: Vy_chassi    2.3  Vy_roda    6.7  subida  0.05  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.18,-0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    2.4  Vy_roda    7.8  subida  0.05  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.17,+0.01]  saltita
+   v=150 downforce=sim: Vy_chassi    5.1  Vy_roda   19.0  subida  0.14  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.15,+0.01]  saltita
+   v=150 downforce=não: Vy_chassi    5.2  Vy_roda   19.3  subida  0.16  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,+0.01]  saltita
+   v=300 downforce=sim: Vy_chassi    0.5  Vy_roda    0.5  subida  0.00  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.16,-0.01]  saltita
+   v=300 downforce=não: Vy_chassi    0.5  Vy_roda    0.4  subida  0.00  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.14,-0.01]  ok
+== 6 poucos triângulos (40 studs, ±1°)
+   v= 50 downforce=sim: Vy_chassi    1.2  Vy_roda    1.4  subida  0.06  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.15,-0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    1.5  Vy_roda    6.4  subida  0.07  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,+0.01]  saltita
+   v=150 downforce=sim: Vy_chassi    2.4  Vy_roda    4.4  subida  0.05  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.18,-0.01]  saltita
+   v=150 downforce=não: Vy_chassi    5.1  Vy_roda   18.9  subida  0.15  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.17,+0.01]  saltita
+   v=300 downforce=sim: Vy_chassi    5.0  Vy_roda    7.0  subida  0.03  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.23,-0.01]  saltita
+   v=300 downforce=não: Vy_chassi    5.4  Vy_roda    6.9  subida  0.03  no_ar    0ms  assoalho  0  asa  0  batente  0  curso [-0.20,-0.01]  ok
+== 7 muitos triângulos (4 studs, ±0.3°, degraus 0.001)
+   v= 50 downforce=sim: Vy_chassi    0.9  Vy_roda    3.8  subida  0.03  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.15,+0.01]  saltita
+   v= 50 downforce=não: Vy_chassi    1.2  Vy_roda    6.1  subida  0.04  no_ar    4ms  assoalho  0  asa  0  batente  0  curso [-0.14,+0.01]  saltita
+   v=150 downforce=sim: Vy_chassi    6.3  Vy_roda   19.8  subida  0.17  no_ar   29ms  assoalho  0  asa  0  batente  0  curso [-0.24,+0.01]  saltita
+   v=150 downforce=não: Vy_chassi    5.9  Vy_roda   18.3  subida  0.17  no_ar   17ms  assoalho  0  asa  0  batente  0  curso [-0.22,+0.01]  saltita
+   v=300 downforce=sim: Vy_chassi    3.2  Vy_roda    6.9  subida  0.05  no_ar   17ms  assoalho  0  asa  0  batente  0  curso [-0.25,+0.00]  saltita
+   v=300 downforce=não: Vy_chassi    3.0  Vy_roda   18.4  subida  0.05  no_ar   25ms  assoalho  0  asa  0  batente  0  curso [-0.20,+0.01]  saltita

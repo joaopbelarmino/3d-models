@@ -1,0 +1,30 @@
+
+######## ORIGINAL (como no arquivo)
+  subida suave 3° @150           pula   25%  Vy chassi máx  10.3  no ar máx   17ms  batente 0
+  subida suave 3° @300           pula   38%  Vy chassi máx  17.9  no ar máx   29ms  batente 0
+  crista 2.8° @300               pula  100%  Vy chassi máx  13.9  no ar máx   71ms  batente 0
+  vale 2.8° @300                 pula    0%  Vy chassi máx   6.3  no ar máx    4ms  batente 0
+  quina 0.0016 @150              pula    0%  Vy chassi máx   2.5  no ar máx    4ms  batente 0
+  quina 0.0016 @300              pula   12%  Vy chassi máx  15.7  no ar máx    4ms  batente 0
+  quina 0.0043 @150              pula    0%  Vy chassi máx   6.0  no ar máx    4ms  batente 0
+  muitos triângulos @150         pula    0%  Vy chassi máx   7.3  no ar máx   29ms  batente 0
+  muitos triângulos @300         pula   50%  Vy chassi máx  20.5  no ar máx   46ms  batente 0
+  quina 0.0016 @150 freando      pula   12%  Vy chassi máx   8.4  no ar máx    4ms  batente 0
+  quina 0.0016 @150 acelerando   pula    0%  Vy chassi máx   2.0  no ar máx    4ms  batente 0
+  quina 0.0016 @50               pula    0%  Vy chassi máx   0.7  no ar máx    4ms  batente 0
+  >>> ORIGINAL (como no arquivo)                              soma pulos  2.38   média Vy máx   9.3   no ar máx   71 ms
+
+######## V2 (rodas 0.2 + lastro, amort 300/300, elasticidade 0)
+  subida suave 3° @150           pula    0%  Vy chassi máx   3.2  no ar máx    0ms  batente 0
+  subida suave 3° @300           pula    0%  Vy chassi máx   6.1  no ar máx    8ms  batente 0
+  crista 2.8° @300               pula  100%  Vy chassi máx  14.9  no ar máx  104ms  batente 0
+  vale 2.8° @300                 pula    0%  Vy chassi máx   4.8  no ar máx    0ms  batente 0
+  quina 0.0016 @150              pula    0%  Vy chassi máx   2.6  no ar máx    0ms  batente 0
+  quina 0.0016 @300              pula    0%  Vy chassi máx   3.8  no ar máx    0ms  batente 0
+  quina 0.0043 @150              pula    0%  Vy chassi máx   2.8  no ar máx    0ms  batente 0
+  muitos triângulos @150         pula    0%  Vy chassi máx   3.7  no ar máx   12ms  batente 0
+  muitos triângulos @300         pula    0%  Vy chassi máx   9.6  no ar máx   38ms  batente 0
+  quina 0.0016 @150 freando      pula    0%  Vy chassi máx   2.7  no ar máx    0ms  batente 0
+  quina 0.0016 @150 acelerando   pula    0%  Vy chassi máx   2.5  no ar máx    0ms  batente 0
+  quina 0.0016 @50               pula    0%  Vy chassi máx   0.9  no ar máx    0ms  batente 0
+  >>> V2 (rodas 0.2 + lastro, amort 300/300, elasticidade 0)  soma pulos  1.00   média Vy máx   4.8   no ar máx  104 ms
