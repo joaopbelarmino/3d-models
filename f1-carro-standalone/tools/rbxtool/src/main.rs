@@ -125,6 +125,7 @@ fn main() {
         "chassis" => chassis(&a[2], &a[3], &a[4]),
         "place" => place_into(&a[2], &a[3], &a[4], &a[5]),
         "build" => build(&a[2], &a[3], &a[4], &a[5]),
+        "v2" => v2(&a[2], &a[3], &a[4], a.get(5).map(|x| x.as_str())),
         _ => panic!("unknown cmd"),
     }
 }
@@ -808,4 +809,157 @@ fn addscripts(a: &[String]) {
     }
     let top = dom.root().children().to_vec();
     save(&dom, &top, &a[3]);
+}
+
+// ---------------------------------------------------------------------------
+// v2: chassi anti-pulo (mesma arquitetura, mesmos scripts) ao lado do original
+// ---------------------------------------------------------------------------
+use rbx_dom_weak::types::{CustomPhysicalProperties, PhysicalProperties};
+
+// massa que sai de cada roda e vai para um lastro suspenso no mesmo ponto
+const V2_DENS_RODA: f32 = 0.2; // original 0.7
+const V2_DAMPING: f32 = 300.0; // original 99.3 frente / 198.6 trás
+const V2_FREE_F: f64 = 1.541; // original 1.5 (compensa o lastro: mesma altura de rodagem)
+const V2_FREE_T: f64 = 1.544;
+const V2_LIM: f32 = 0.4986212; // mesmo curso, na ordem certa
+const V2_LASTRO: f32 = 0.8; // aresta do cubo de lastro
+
+fn custom_pp(dom: &WeakDom, r: Ref) -> Option<CustomPhysicalProperties> {
+    match dom.get_by_ref(r).unwrap().properties.get(&"CustomPhysicalProperties".into()) {
+        Some(Variant::PhysicalProperties(PhysicalProperties::Custom(c))) => Some(*c),
+        _ => None,
+    }
+}
+
+fn f32_prop(dom: &WeakDom, r: Ref, k: &str) -> f32 {
+    match dom.get_by_ref(r).unwrap().properties.get(&k.into()) {
+        Some(Variant::Float32(x)) => *x,
+        other => panic!("{k}: {:?}", other),
+    }
+}
+
+fn v2(input: &str, out: &str, mode: &str, model_out: Option<&str>) {
+    let mut dom = load(input);
+    let ws = find(&dom, "Workspace");
+    let full = find(&dom, "Workspace/Carro");
+    let car = clone_to(&mut dom, full, ws, "Carro_V2");
+    let p = |dom: &WeakDom, rel: &str| -> Ref {
+        let mut cur = car;
+        for part in rel.split('/') { cur = child(dom, cur, part).unwrap_or_else(|| panic!("missing {rel}")); }
+        cur
+    };
+    let mut log: Vec<String> = vec![];
+
+    // 1. rodas: menos massa não suspensa, sem quique (elasticidade 0 com peso 1)
+    let rodas = [("FD", "Chassi/EixoFD/RodaFD", "Chassi/EixoFD"), ("FE", "Chassi/EixoFE/RodaFE", "Chassi/EixoFE"),
+                 ("TD", "Chassi/EixoT/RodaTD", "Chassi/EixoT"), ("TE", "Chassi/EixoT/RodaTE", "Chassi/EixoT")];
+    let template = p(&dom, "Chassi/RAYFD");
+    for (k, rr, er) in rodas {
+        let roda = p(&dom, rr);
+        let eixo = p(&dom, er);
+        let sz = size_of(&dom, roda);
+        let vol = std::f32::consts::PI * (sz.y / 2.0) * (sz.y / 2.0) * sz.x; // cilindro no eixo X
+        let mut pp = custom_pp(&dom, roda).expect("roda sem CustomPhysicalProperties");
+        let m_old = pp.density() * vol;
+        pp.set_density(V2_DENS_RODA);
+        pp.set_elasticity(0.0);
+        pp.set_elasticity_weight(1.0);
+        set_prop(&mut dom, roda, "CustomPhysicalProperties", Variant::PhysicalProperties(PhysicalProperties::Custom(pp)));
+        let m_new = V2_DENS_RODA * vol;
+        let dm = m_old - m_new;
+
+        // 2. lastro com a massa tirada, no centro da roda, soldado à manga (frente) ou ao suporte traseiro
+        let l = dom.clone_within(template);
+        dom.transfer_within(l, eixo);
+        let lr: Vec<Ref> = dom.descendants_of(l).map(|i| i.referent()).collect();
+        for r in lr { dom.get_by_ref_mut(r).unwrap().properties.remove(&"UniqueId".into()); }
+        dom.get_by_ref_mut(l).unwrap().name = format!("Lastro{k}");
+        let a = V2_LASTRO;
+        set_prop(&mut dom, l, "Size", Variant::Vector3(Vector3::new(a, a, a)));
+        let rcf = cframe_of(&dom, roda);
+        set_prop(&mut dom, l, "CFrame", Variant::CFrame(rcf));
+        let dens = dm / (a * a * a);
+        set_prop(&mut dom, l, "CustomPhysicalProperties", Variant::PhysicalProperties(PhysicalProperties::Custom(
+            CustomPhysicalProperties::new(dens, 0.3, 0.0, 1.0, 1.0, 1.0))));
+        set_prop(&mut dom, l, "Massless", Variant::Bool(false));
+        set_prop(&mut dom, l, "CanCollide", Variant::Bool(false));
+        set_prop(&mut dom, l, "CanTouch", Variant::Bool(false));
+        set_prop(&mut dom, l, "CanQuery", Variant::Bool(false));
+        set_prop(&mut dom, l, "Transparency", Variant::Float32(1.0));
+        set_attr(&mut dom, l, "Categoria", Variant::String("LastroV2".into()));
+        set_attr(&mut dom, l, "Massa", Variant::Float64(dm as f64));
+        let weld = dom.get_by_ref(l).unwrap().children()[0];
+        set_prop(&mut dom, weld, "Part0", Variant::Ref(l));
+        set_prop(&mut dom, weld, "Part1", Variant::Ref(eixo));
+        dom.get_by_ref_mut(weld).unwrap().name = format!("Solda_Lastro{k}");
+        log.push(format!("roda {k}: massa {m_old:.3} -> {m_new:.3}; lastro {dm:.3} (densidade {dens:.4})"));
+    }
+    // a manga dianteira deixa de ser a raiz da montagem (o lastro é maior): mantém a massa dela
+    for e in ["Chassi/EixoFD", "Chassi/EixoFE"] {
+        let r = p(&dom, e);
+        set_prop(&mut dom, r, "Massless", Variant::Bool(false));
+    }
+
+    // 3. amortecimento e 4. limites na ordem certa
+    let molas = ["Chassi/EixoFD/RodaFD/SpringConstraint", "Chassi/EixoFE/RodaFE/SpringConstraint",
+                 "Chassi/EixoT/RodaTD/Mola", "Chassi/EixoT/RodaTE/Mola"];
+    for (i, m) in molas.iter().enumerate() {
+        let r = p(&dom, m);
+        let old = f32_prop(&dom, r, "Damping");
+        set_prop(&mut dom, r, "Damping", Variant::Float32(V2_DAMPING));
+        let fl = if i < 2 { V2_FREE_F } else { V2_FREE_T };
+        set_prop(&mut dom, r, "FreeLength", Variant::Float32(fl as f32));
+        log.push(format!("{m}: Damping {old} -> {V2_DAMPING}, FreeLength -> {fl}"));
+    }
+    for c in ["Chassi/EixoFD/MotorD", "Chassi/EixoFE/MotorE", "Chassi/EixoT/MotorD", "Chassi/EixoT/MotorE"] {
+        let r = p(&dom, c);
+        let (lo, up) = (f32_prop(&dom, r, "LowerLimit"), f32_prop(&dom, r, "UpperLimit"));
+        set_prop(&mut dom, r, "LowerLimit", Variant::Float32(-V2_LIM));
+        set_prop(&mut dom, r, "UpperLimit", Variant::Float32(V2_LIM));
+        log.push(format!("{c}: limites {lo}/{up} -> {}/{}", -V2_LIM, V2_LIM));
+    }
+
+    // 5. peças da carroceria que colidem: sem quique (mesma densidade e atrito)
+    for (b, def) in [("Corpo", None), ("Corpo/AsaFrontal", Some((0.7f32, 0.3f32))), ("Corpo/aerofolio", Some((0.7, 0.3)))] {
+        let r = p(&dom, b);
+        let mut pp = match custom_pp(&dom, r) {
+            Some(c) => c,
+            None => { let (d, f) = def.unwrap(); CustomPhysicalProperties::new(d, f, 0.5, 1.0, 1.0, 1.0) } // Plastic padrão
+        };
+        pp.set_elasticity(0.0);
+        pp.set_elasticity_weight(1.0);
+        set_prop(&mut dom, r, "CustomPhysicalProperties", Variant::PhysicalProperties(PhysicalProperties::Custom(pp)));
+        log.push(format!("{b}: elasticidade -> 0"));
+    }
+
+    // 6. altura das molas aplicada pelo ScriptCar no spawn
+    let cfg = p(&dom, "Config");
+    set_attr(&mut dom, cfg, "MolalturaF", Variant::Float64(V2_FREE_F));
+    set_attr(&mut dom, cfg, "MolalturaT", Variant::Float64(V2_FREE_T));
+    set_attr(&mut dom, car, "Versao", Variant::String("V2 anti-pulo".into()));
+    set_attr(&mut dom, car, "Base", Variant::String("Workspace.Carro (original)".into()));
+
+    // posição
+    let chassi = p(&dom, "Chassi");
+    let d = match mode {
+        "lab" => {
+            let cf = cframe_of(&dom, chassi);
+            let x = cf.orientation.x; // lado do carro
+            Vector3::new(x.x * 12.0, 0.0, x.z * 12.0)
+        }
+        "spa" => {
+            let (a, b) = (cframe_of(&dom, find(&dom, "Workspace/Spa/Pista/Grid/GridPos01")), cframe_of(&dom, find(&dom, "Workspace/Spa/Pista/Grid/GridPos02")));
+            Vector3::new(b.position.x - a.position.x, b.position.y - a.position.y, b.position.z - a.position.z)
+        }
+        _ => panic!("mode lab|spa"),
+    };
+    translate_tree(&mut dom, car, d);
+    log.push(format!("translação {:?}", d));
+    for l in &log { println!("{l}"); }
+
+    if let Some(mo) = model_out {
+        save(&dom, &[car], mo);
+    }
+    let top = dom.root().children().to_vec();
+    save(&dom, &top, out);
 }

@@ -82,7 +82,8 @@ new("ModuleScript", "ModuleCar", mcf).__p.__src = fs.readFile(MODCAR)
 -- car (structure as in the package)
 local model = new("Model", "Carro", workspace)
 local cfg = new("Configuration", "Config", model)
-for k, v in pairs({ AplicarTuning = true, MolalturaF = 1.5, MolalturaT = 1.5, RigidezF = 25000, RigidezT = 25000, CamberF = 90, CamberT = 90, Sensibilidade = 1.5, TC = 1 }) do cfg.__a[k] = v end
+local V2 = process.args[3] == "v2" -- chassi V2: rodas leves sem quique, altura das molas compensada
+for k, v in pairs({ AplicarTuning = true, MolalturaF = V2 and 1.541 or 1.5, MolalturaT = V2 and 1.544 or 1.5, RigidezF = 25000, RigidezT = 25000, CamberF = 90, CamberT = 90, Sensibilidade = 1.5, TC = 1 }) do cfg.__a[k] = v end
 local ch = new("Part", "Chassi", model, { AssemblyLinearVelocity = Vector3.zero, AssemblyAngularVelocity = Vector3.zero, Orientation = V3(0, 0, 0) })
 for _, k in ipairs({ "AsaBroken", "EixoFdBroken", "EixoFeBroken", "Inpit" }) do ch.__a[k] = false end
 local SEMCORPO = process.args[3] == "semcorpo"
@@ -94,7 +95,7 @@ if not SEMCORPO then
 	new("HingeConstraint", "HingeConstraint", new("MeshPart", "DRS", corpo))
 end
 new("ObjectValue", "Player", ch, { Value = nil })
-local cpp = function(f) return PhysicalProperties.new(0.7, f, 0.3, 0.5, 0) end
+local cpp = function(f) if V2 then return PhysicalProperties.new(0.2, f, 0, 0.5, 1) end return PhysicalProperties.new(0.7, f, 0.3, 0.5, 0) end
 local function axle(name, wheels, motors, steer)
 	local e = new("Part", name, ch)
 	for _, m in ipairs(motors) do new("CylindricalConstraint", m, e, { InclinationAngle = 90 }) end
